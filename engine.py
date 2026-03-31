@@ -1,7 +1,8 @@
-"""
-محرك الذكاء الاصطناعي المتقدم للعبة الداما
+""" محرك الذكاء الاصطناعي المتقدم للعبة الداما
 =============================================
+النسخة المُصححة - جميع الأخطاء الحرجة والمتوسطة والبسيطة تم إصلاحها
 """
+
 import math
 import time
 import random
@@ -17,68 +18,147 @@ except ImportError:
 # ════════════════════════════════════════════
 # ثوابت النظام
 # ════════════════════════════════════════════
-INF           = math.inf
-MATE_SCORE    = 10_000_000
-TT_MAX_SIZE   = 1_000_000
-KILLER_SLOTS  = 3
-MAX_DEPTH     = 24
+INF = math.inf
+MATE_SCORE = 10_000_000
+TT_MAX_SIZE = 1_000_000
+KILLER_SLOTS = 3
+MAX_DEPTH = 24
 LMR_MIN_DEPTH = 3
 LMR_MIN_MOVES = 4
 
 # ════════════════════════════════════════════
 # ثوابت التقييم
 # ════════════════════════════════════════════
-PIECE_VALUE       = 1000
-KING_VALUE        = 3200
-TEMPO_BONUS       = 18
-CENTER_BONUS      = 22
-INNER_CENTER_B    = 40
-ADVANCEMENT_B     = 12
-BACK_ROW_BONUS    = 35
-KING_CENTER_B     = 45
-MOBILITY_W        = 8
-ENDGAME_KING_B    = 60
-TRIANGLE_BONUS    = 30
-BRIDGE_BONUS      = 25
-DOUBLE_CORNER_B   = 40
-TRADE_BONUS       = 15
-SAFE_PIECE_BONUS  = 20
-DANGER_PENALTY    = 80
-FORK_BONUS        = 150
-TRAP_BONUS        = 200
-DECOY_BONUS       = 120
-CHAIN_CAPTURE_B   = 180
-PAWN_STRUCTURE_B  = 18
+PIECE_VALUE = 1000
+KING_VALUE = 3200
+TEMPO_BONUS = 18
+CENTER_BONUS = 22
+INNER_CENTER_B = 40
+ADVANCEMENT_B = 12
+BACK_ROW_BONUS = 35
+KING_CENTER_B = 45
+MOBILITY_W = 8
+ENDGAME_KING_B = 60
+TRIANGLE_BONUS = 30
+BRIDGE_BONUS = 25
+DOUBLE_CORNER_B = 40
+TRADE_BONUS = 15
+SAFE_PIECE_BONUS = 20
+DANGER_PENALTY = 80
+FORK_BONUS = 150
+TRAP_BONUS = 200
+DECOY_BONUS = 120
+CHAIN_CAPTURE_B = 180
+PAWN_STRUCTURE_B = 18
 ISOLATION_PENALTY = 25
 VULNERABILITY_PEN = 90
 
 # مربعات استراتيجية
-CENTER_SQUARES  = {10, 11, 14, 15, 18, 19, 22, 23}
-INNER_CENTER    = {14, 15, 18, 19}
-WHITE_BACK_ROW  = {29, 30, 31, 32}
-BLACK_BACK_ROW  = {1, 2, 3, 4}
-CORNER_SQUARES  = {1, 4, 29, 32}
-DOUBLE_CORNER   = {4, 29}
-EDGE_SQUARES    = {5, 9, 13, 17, 21, 25}
+CENTER_SQUARES = {10, 11, 14, 15, 18, 19, 22, 23}
+INNER_CENTER = {14, 15, 18, 19}
+WHITE_BACK_ROW = {29, 30, 31, 32}
+BLACK_BACK_ROW = {1, 2, 3, 4}
+CORNER_SQUARES = {1, 4, 29, 32}
+DOUBLE_CORNER = {4, 29}
+EDGE_SQUARES = {5, 9, 13, 17, 21, 25}
 
-# خريطة الجيران لكل مربع
-NEIGHBORS: dict = {
-    1:  [5, 6],        2:  [6, 7],        3:  [7, 8],        4:  [8],
-    5:  [1, 9],        6:  [1, 2, 9, 10], 7:  [2, 3, 10, 11],8:  [3, 4, 11, 12],
-    9:  [5, 6, 13, 14],10: [6, 7, 14, 15],11: [7, 8, 15, 16],12: [8, 16],
-    13: [9, 17],       14: [9, 10, 17, 18],15: [10, 11, 18, 19],16: [11, 12, 19, 20],
-    17: [13, 14, 21, 22],18: [14, 15, 22, 23],19: [15, 16, 23, 24],20: [16, 24],
-    21: [17, 25],      22: [17, 18, 25, 26],23: [18, 19, 26, 27],24: [19, 20, 27, 28],
-    25: [21, 22, 29, 30],26: [22, 23, 30, 31],27: [23, 24, 31, 32],28: [24, 32],
-    29: [25, 26],      30: [25, 26, 27],  31: [26, 27, 28],  32: [27, 28],
-}
+# ════════════════════════════════════════════
+# دوال تحويل الإحداثيات
+# ════════════════════════════════════════════
+def _sq_to_pos(sq):
+    """
+    تحويل رقم المربع (1-32) إلى (صف، عمود) على رقعة 8×8.
+    الترقيم:
+    Row 0: __ 1 __ 2 __ 3 __ 4
+    Row 1: 5 __ 6 __ 7 __ 8 __
+    Row 2: __ 9 __ 10 __ 11 __ 12
+    Row 3: 13 __ 14 __ 15 __ 16 __
+    Row 4: __ 17 __ 18 __ 19 __ 20
+    Row 5: 21 __ 22 __ 23 __ 24 __
+    Row 6: __ 25 __ 26 __ 27 __ 28
+    Row 7: 29 __ 30 __ 31 __ 32 __
+    """
+    row = (sq - 1) // 4
+    col_idx = (sq - 1) % 4
+    if row % 2 == 0:
+        col = col_idx * 2 + 1
+    else:
+        col = col_idx * 2
+    return row, col
+
+
+def _pos_to_sq(row, col):
+    """
+    تحويل (صف، عمود) إلى رقم المربع (1-32).
+    يُرجع None إذا كان خارج الحدود أو ليس مربعاً داكناً.
+    """
+    if row < 0 or row > 7 or col < 0 or col > 7:
+        return None
+    if (row + col) % 2 == 0:
+        return None
+    if row % 2 == 0:
+        idx = (col - 1) // 2
+    else:
+        idx = col // 2
+    return row * 4 + idx + 1
+
+
+# ════════════════════════════════════════════
+# خريطة الجيران المُصححة لكل مربع
+# ════════════════════════════════════════════
+def _build_neighbors():
+    """ بناء خريطة الجيران القطريين لكل مربع بشكل صحيح.
+        كل مربع له حتى 4 جيران قطريين. """
+    neighbors = {}
+    for sq in range(1, 33):
+        row, col = _sq_to_pos(sq)
+        nb_list = []
+        for dr, dc in [(-1, -1), (-1, +1), (+1, -1), (+1, +1)]:
+            nr = row + dr
+            nc = col + dc
+            nb_sq = _pos_to_sq(nr, nc)
+            if nb_sq is not None:
+                nb_list.append(nb_sq)
+        neighbors[sq] = nb_list
+    return neighbors
+
+
+NEIGHBORS = _build_neighbors()
+
+
+# ════════════════════════════════════════════
+# جدول القفزات المُصحح
+# ════════════════════════════════════════════
+def _build_jump_table():
+    """
+    بناء جدول: (من، فوق) → مربع_الهبوط.
+    يُستخدم لحساب مربع الهبوط بعد القفز فوق قطعة.
+    المفتاح: (attacker_sq, target_sq) → landing_sq
+    """
+    jump = {}
+    for sq in range(1, 33):
+        r1, c1 = _sq_to_pos(sq)
+        for nb in NEIGHBORS.get(sq, []):
+            r2, c2 = _sq_to_pos(nb)
+            dr = r2 - r1
+            dc = c2 - c1
+            lr = r2 + dr
+            lc = c2 + dc
+            land = _pos_to_sq(lr, lc)
+            if land is not None:
+                jump[(sq, nb)] = land
+    return jump
+
+
+JUMP_TABLE = _build_jump_table()
+
 
 # ════════════════════════════════════════════
 # جداول الموضع
 # ════════════════════════════════════════════
 WHITE_MAN_PST = {
-    1: 0,  2: 0,  3: 0,  4: 0,
-    5: 8,  6: 8,  7: 8,  8: 8,
+    1: 0, 2: 0, 3: 0, 4: 0,
+    5: 8, 6: 8, 7: 8, 8: 8,
     9: 14, 10: 20, 11: 20, 12: 14,
     13: 18, 14: 28, 15: 28, 16: 18,
     17: 20, 18: 35, 19: 35, 20: 20,
@@ -88,37 +168,38 @@ WHITE_MAN_PST = {
 }
 
 BLACK_MAN_PST = {
-    32: 0,  31: 0,  30: 0,  29: 0,
-    28: 8,  27: 8,  26: 8,  25: 8,
+    32: 0, 31: 0, 30: 0, 29: 0,
+    28: 8, 27: 8, 26: 8, 25: 8,
     24: 14, 23: 20, 22: 20, 21: 14,
     20: 18, 19: 28, 18: 28, 17: 18,
     16: 20, 15: 35, 14: 35, 13: 20,
-    12: 22, 11: 30, 10: 30,  9: 22,
-     8: 28,  7: 24,  6: 24,  5: 28,
-     4: 40,  3: 40,  2: 40,  1: 40,
+    12: 22, 11: 30, 10: 30, 9: 22,
+    8: 28, 7: 24, 6: 24, 5: 28,
+    4: 40, 3: 40, 2: 40, 1: 40,
 }
 
 KING_PST = {
-    1: 5,  2: 5,  3: 5,  4: 5,
-    5: 5,  6: 12, 7: 12, 8: 5,
-    9: 5,  10: 20, 11: 20, 12: 5,
+    1: 5, 2: 5, 3: 5, 4: 5,
+    5: 5, 6: 12, 7: 12, 8: 5,
+    9: 5, 10: 20, 11: 20, 12: 5,
     13: 5, 14: 30, 15: 30, 16: 5,
     17: 5, 18: 30, 19: 30, 20: 5,
     21: 5, 22: 20, 23: 20, 24: 5,
     25: 5, 26: 12, 27: 12, 28: 5,
-    29: 5, 30: 5,  31: 5,  32: 5,
+    29: 5, 30: 5, 31: 5, 32: 5,
 }
 
 KING_ENDGAME_PST = {
-    1: 2,  2: 2,  3: 2,  4: 2,
-    5: 2,  6: 8,  7: 8,  8: 2,
-    9: 2,  10: 18, 11: 18, 12: 2,
+    1: 2, 2: 2, 3: 2, 4: 2,
+    5: 2, 6: 8, 7: 8, 8: 2,
+    9: 2, 10: 18, 11: 18, 12: 2,
     13: 2, 14: 28, 15: 28, 16: 2,
     17: 2, 18: 28, 19: 28, 20: 2,
     21: 2, 22: 18, 23: 18, 24: 2,
-    25: 2, 26: 8,  27: 8,  28: 2,
-    29: 2, 30: 2,  31: 2,  32: 2,
+    25: 2, 26: 8, 27: 8, 28: 2,
+    29: 2, 30: 2, 31: 2, 32: 2,
 }
+
 
 # ════════════════════════════════════════════
 # كتاب الافتتاحيات
@@ -161,8 +242,7 @@ class ZobristHasher:
         }
         self.turn_white = rng.getrandbits(64)
 
-    def compute(self, white_pieces: list, black_pieces: list,
-                is_white_turn: bool) -> int:
+    def compute(self, white_pieces: list, black_pieces: list, is_white_turn: bool) -> int:
         h = 0
         for sq, is_king in white_pieces:
             if 1 <= sq <= 32:
@@ -189,11 +269,10 @@ class TranspositionTable:
     def __init__(self, max_size: int = TT_MAX_SIZE):
         self.max_size = max_size
         self.data: dict = {}
-        self.hits   = 0
+        self.hits = 0
         self.stores = 0
 
-    def lookup(self, key: int, depth: int,
-               alpha: float, beta: float):
+    def lookup(self, key: int, depth: int, alpha: float, beta: float):
         entry = self.data.get(key)
         if entry is None:
             return None
@@ -209,16 +288,14 @@ class TranspositionTable:
             return score
         return None
 
-    def store(self, key: int, depth: int, score: float,
-              flag: int, best_str: str = ""):
+    def store(self, key: int, depth: int, score: float, flag: int, best_str: str = ""):
         existing = self.data.get(key)
         if existing and existing[0] > depth:
             return
         if len(self.data) >= self.max_size:
-            victims = random.sample(
-                list(self.data.keys()), len(self.data) // 4
-            )
-            for k in victims:
+            keys = list(self.data.keys())
+            keys_to_del = keys[:len(keys) // 4]
+            for k in keys_to_del:
                 del self.data[k]
         self.data[key] = (depth, score, flag, best_str)
         self.stores += 1
@@ -229,7 +306,7 @@ class TranspositionTable:
 
     def clear(self):
         self.data.clear()
-        self.hits   = 0
+        self.hits = 0
         self.stores = 0
 
     @property
@@ -242,8 +319,8 @@ class TranspositionTable:
 # ════════════════════════════════════════════
 class MoveOrderingData:
     def __init__(self):
-        self.killers: dict  = defaultdict(lambda: [None] * KILLER_SLOTS)
-        self.history: dict  = defaultdict(int)
+        self.killers: dict = defaultdict(lambda: [None] * KILLER_SLOTS)
+        self.history: dict = defaultdict(int)
         self.counters: dict = {}
 
     def add_killer(self, depth: int, ms: str):
@@ -274,7 +351,7 @@ class MoveOrderingData:
 # ════════════════════════════════════════════
 # Singletons
 # ════════════════════════════════════════════
-_tt    = TranspositionTable()
+_tt = TranspositionTable()
 _order = MoveOrderingData()
 
 
@@ -291,9 +368,9 @@ def get_tt_stats() -> dict:
     """إحصائيات Transposition Table"""
     total = max(1, _tt.hits + _tt.stores)
     return {
-        "size":     _tt.size,
-        "hits":     _tt.hits,
-        "stores":   _tt.stores,
+        "size": _tt.size,
+        "hits": _tt.hits,
+        "stores": _tt.stores,
         "hit_rate": f"{100 * _tt.hits / total:.1f}%",
     }
 
@@ -426,76 +503,71 @@ def build_square_sets(wp: list, bp: list):
     مُصدَّرة علنياً بدون underscore.
     Returns: (w_set, b_set, w_kings, b_kings)
     """
-    w_set   = {sq for sq, _ in wp}
-    b_set   = {sq for sq, _ in bp}
+    w_set = {sq for sq, _ in wp}
+    b_set = {sq for sq, _ in bp}
     w_kings = {sq for sq, k in wp if k}
     b_kings = {sq for sq, k in bp if k}
     return w_set, b_set, w_kings, b_kings
 
 
-# نسخة داخلية للتوافق مع الكود القديم
 def _build_square_sets(wp: list, bp: list):
+    """نسخة داخلية للتوافق مع الكود القديم"""
     return build_square_sets(wp, bp)
 
 
-def is_square_attacked_by_white(sq: int, w_set: set, b_set: set,
-                                 w_kings: set, all_pieces: set) -> bool:
+def is_square_attacked_by_white(sq: int, w_set: set, b_set: set, w_kings: set, all_pieces: set) -> bool:
     """
-    هل المربع sq مهدد من الأبيض؟
+    هل المربع sq (الذي يحتوي قطعة سوداء) مهدد من الأبيض؟
+    يتحقق: هل توجد قطعة بيضاء مجاورة يمكنها القفز فوق sq والهبوط في مربع فارغ؟
     مُصدَّرة علنياً.
     """
     for nb in NEIGHBORS.get(sq, []):
         if nb not in w_set:
             continue
-        land = sq + (sq - nb)
-        if not (1 <= land <= 32):
+        land = JUMP_TABLE.get((nb, sq))
+        if land is None:
             continue
         if land in all_pieces:
             continue
         nb_row = (nb - 1) // 4
         sq_row = (sq - 1) // 4
-        # الأبيض يتحرك للأعلى (أرقام أصغر = صف أقل)
         if nb_row > sq_row or nb in w_kings:
             return True
     return False
 
 
-def _is_square_attacked_by_white(sq: int, w_set: set, b_set: set,
-                                  w_kings: set, all_pieces: set) -> bool:
+def _is_square_attacked_by_white(sq: int, w_set: set, b_set: set, w_kings: set, all_pieces: set) -> bool:
     """نسخة داخلية للتوافق"""
     return is_square_attacked_by_white(sq, w_set, b_set, w_kings, all_pieces)
 
 
-def is_square_attacked_by_black(sq: int, w_set: set, b_set: set,
-                                 b_kings: set, all_pieces: set) -> bool:
+def is_square_attacked_by_black(sq: int, w_set: set, b_set: set, b_kings: set, all_pieces: set) -> bool:
     """
-    هل المربع sq مهدد من الأسود؟
+    هل المربع sq (الذي يحتوي قطعة بيضاء) مهدد من الأسود؟
+    يتحقق: هل توجد قطعة سوداء مجاورة يمكنها القفز فوق sq والهبوط في مربع فارغ؟
     مُصدَّرة علنياً.
     """
     for nb in NEIGHBORS.get(sq, []):
         if nb not in b_set:
             continue
-        land = sq + (sq - nb)
-        if not (1 <= land <= 32):
+        land = JUMP_TABLE.get((nb, sq))
+        if land is None:
             continue
         if land in all_pieces:
             continue
         nb_row = (nb - 1) // 4
         sq_row = (sq - 1) // 4
-        # الأسود يتحرك للأسفل (أرقام أكبر = صف أعلى)
         if nb_row < sq_row or nb in b_kings:
             return True
     return False
 
 
-def _is_square_attacked_by_black(sq: int, w_set: set, b_set: set,
-                                  b_kings: set, all_pieces: set) -> bool:
+def _is_square_attacked_by_black(sq: int, w_set: set, b_set: set, b_kings: set, all_pieces: set) -> bool:
     """نسخة داخلية للتوافق"""
     return is_square_attacked_by_black(sq, w_set, b_set, b_kings, all_pieces)
 
 
-def count_threatened_pieces(wp: list, bp: list,
-                              is_white_threatened: bool) -> int:
+def count_threatened_pieces(wp: list, bp: list, is_white_threatened: bool) -> int:
     """
     عدد القطع المهددة بالأكل.
     مُصدَّرة علنياً.
@@ -506,23 +578,22 @@ def count_threatened_pieces(wp: list, bp: list,
     if is_white_threatened:
         for sq, _ in wp:
             if is_square_attacked_by_black(
-                    sq, w_set, b_set, b_kings, all_pieces):
+                sq, w_set, b_set, b_kings, all_pieces):
                 count += 1
     else:
         for sq, _ in bp:
             if is_square_attacked_by_white(
-                    sq, w_set, b_set, w_kings, all_pieces):
+                sq, w_set, b_set, w_kings, all_pieces):
                 count += 1
     return count
 
 
-def _count_threatened_pieces(wp: list, bp: list,
-                               is_white_threatened: bool) -> int:
+def _count_threatened_pieces(wp: list, bp: list, is_white_threatened: bool) -> int:
+    """نسخة داخلية للتوافق"""
     return count_threatened_pieces(wp, bp, is_white_threatened)
 
 
-def get_threatened_squares(wp: list, bp: list,
-                            player_color) -> set:
+def get_threatened_squares(wp: list, bp: list, player_color) -> set:
     """
     إرجاع مجموعة المربعات التي تحتوي قطع اللاعب المهددة.
     مُصدَّرة علنياً - تُستخدم في app.py مباشرة.
@@ -530,25 +601,24 @@ def get_threatened_squares(wp: list, bp: list,
     w_set, b_set, w_kings, b_kings = build_square_sets(wp, bp)
     all_pieces = w_set | b_set
     threatened = set()
-
     if player_color == WHITE:
         for sq, _ in wp:
             if is_square_attacked_by_black(
-                    sq, w_set, b_set, b_kings, all_pieces):
+                sq, w_set, b_set, b_kings, all_pieces):
                 threatened.add(sq)
     else:
         for sq, _ in bp:
             if is_square_attacked_by_white(
-                    sq, w_set, b_set, w_kings, all_pieces):
+                sq, w_set, b_set, w_kings, all_pieces):
                 threatened.add(sq)
     return threatened
 
 
-def detect_forks(pieces_attacker: list, pieces_target: list,
-                  attacker_is_white: bool) -> int:
+def detect_forks(pieces_attacker: list, pieces_target: list, attacker_is_white: bool) -> int:
     """
     كشف الشوكات: عدد القطع التي تهدد أكثر من هدف.
     مُصدَّرة علنياً.
+    يستخدم JUMP_TABLE لحساب مربعات الهبوط بشكل صحيح.
     """
     if attacker_is_white:
         w_set = {sq for sq, _ in pieces_attacker}
@@ -556,33 +626,35 @@ def detect_forks(pieces_attacker: list, pieces_target: list,
     else:
         w_set = {sq for sq, _ in pieces_target}
         b_set = {sq for sq, _ in pieces_attacker}
-
     all_pieces = w_set | b_set
     fork_count = 0
-
-    if attacker_is_white:
-        attacker_list = pieces_attacker
-        kings_set = {sq for sq, k in pieces_attacker if k}
-    else:
-        attacker_list = pieces_attacker
-        kings_set = {sq for sq, k in pieces_attacker if k}
-
-    for sq, is_king in attacker_list:
+    attacker_kings = {sq for sq, k in pieces_attacker if k}
+    target_set = {sq for sq, _ in pieces_target}
+    for sq, is_king in pieces_attacker:
         threats = 0
         for nb in NEIGHBORS.get(sq, []):
-            if attacker_is_white and nb not in b_set:
+            if nb not in target_set:
                 continue
-            if not attacker_is_white and nb not in w_set:
+            land = JUMP_TABLE.get((sq, nb))
+            if land is None:
                 continue
-            land = nb + (nb - sq)
-            if 1 <= land <= 32 and land not in all_pieces:
-                threats += 1
+            if land in all_pieces:
+                continue
+            nb_row = (nb - 1) // 4
+            sq_row = (sq - 1) // 4
+            if attacker_is_white:
+                if sq_row > nb_row or is_king:
+                    threats += 1
+            else:
+                if sq_row < nb_row or is_king:
+                    threats += 1
         if threats >= 2:
             fork_count += 1
     return fork_count
 
 
 def _detect_forks(pa, pt, aiw):
+    """نسخة داخلية للتوافق"""
     return detect_forks(pa, pt, aiw)
 
 
@@ -594,8 +666,7 @@ def evaluate_safety(wp: list, bp: list, ai_is_white: bool) -> float:
     w_set, b_set, w_kings, b_kings = build_square_sets(wp, bp)
     all_p = w_set | b_set
     score = 0.0
-
-    ai_pieces  = wp if ai_is_white else bp
+    ai_pieces = wp if ai_is_white else bp
     opp_pieces = bp if ai_is_white else wp
 
     for sq, is_king in ai_pieces:
@@ -619,24 +690,22 @@ def evaluate_safety(wp: list, bp: list, ai_is_white: bool) -> float:
                 sq, w_set, b_set, b_kings, all_p)
         if thr:
             score += VULNERABILITY_PEN * (3 if is_king else 1)
-
     return score
 
 
 def _evaluate_safety(wp, bp, ai_is_white):
+    """نسخة داخلية للتوافق"""
     return evaluate_safety(wp, bp, ai_is_white)
 
 
-def detect_ui_threats(board, player_color, ai_color,
-                       fen: str, wp: list, bp: list) -> list:
+def detect_ui_threats(board, player_color, ai_color, fen: str, wp: list, bp: list) -> list:
     """
     كشف التهديدات للعرض في الواجهة.
     مُصدَّرة علنياً بدون underscore.
     """
-    threats  = []
-    legal    = get_legal_moves(board)
+    threats = []
+    legal = get_legal_moves(board)
     captures = [m for m in legal if _is_capture(m)]
-
     if captures:
         max_cap = max(_capture_count(m) for m in captures)
         threats.append(
@@ -649,30 +718,30 @@ def detect_ui_threats(board, player_color, ai_color,
 
     # قطع اللاعب المهددة
     player_pieces = wp if player_color == WHITE else bp
-    threatened_p  = []
+    threatened_p = []
     for sq, _ in player_pieces:
         if player_color == WHITE:
             if is_square_attacked_by_black(
-                    sq, w_set, b_set, b_kings, all_p):
+                sq, w_set, b_set, b_kings, all_p):
                 threatened_p.append(sq)
         else:
             if is_square_attacked_by_white(
-                    sq, w_set, b_set, w_kings, all_p):
+                sq, w_set, b_set, w_kings, all_p):
                 threatened_p.append(sq)
     if threatened_p:
         threats.append(f"⚠️ قطعك المهددة: {threatened_p}")
 
     # قطع الخصم المهددة
-    ai_pieces   = bp if player_color == WHITE else wp
+    ai_pieces = bp if player_color == WHITE else wp
     threatened_a = []
     for sq, _ in ai_pieces:
         if player_color == WHITE:
             if is_square_attacked_by_white(
-                    sq, w_set, b_set, w_kings, all_p):
+                sq, w_set, b_set, w_kings, all_p):
                 threatened_a.append(sq)
         else:
             if is_square_attacked_by_black(
-                    sq, w_set, b_set, b_kings, all_p):
+                sq, w_set, b_set, b_kings, all_p):
                 threatened_a.append(sq)
     if threatened_a:
         threats.append(f"🎯 قطع الخصم المهددة: {threatened_a}")
@@ -684,7 +753,6 @@ def detect_ui_threats(board, player_color, ai_color,
     else:
         near = [sq for sq, k in bp if not k and sq in {25, 26, 27, 28}]
         enemy_near = [sq for sq, k in wp if not k and sq in {5, 6, 7, 8}]
-
     if near:
         threats.append(f"👑 قريب من التتويج: {near}")
     if enemy_near:
@@ -701,24 +769,26 @@ def detect_ui_threats(board, player_color, ai_color,
     return threats if threats else ["✅ الموقف آمن"]
 
 
-# نسخة داخلية للتوافق
 def _detect_ui_threats(board, player_color, ai_color, fen, wp, bp):
+    """نسخة داخلية للتوافق"""
     return detect_ui_threats(board, player_color, ai_color, fen, wp, bp)
 
 
 # ════════════════════════════════════════════
 # التقييم الموضعي
 # ════════════════════════════════════════════
-def _score_side(pieces: list, is_white: bool,
-                total: int, phase: float) -> float:
-    score    = 0.0
-    man_pst  = WHITE_MAN_PST  if is_white else BLACK_MAN_PST
+def _score_side(pieces: list, is_white: bool, phase: float) -> float:
+    """
+    تقييم جانب واحد.
+    تم حذف المعامل total غير المُستخدم.
+    """
+    score = 0.0
+    man_pst = WHITE_MAN_PST if is_white else BLACK_MAN_PST
     king_pst = KING_ENDGAME_PST if phase < 0.3 else KING_PST
-    squares  = {sq for sq, _ in pieces}
-
+    squares = {sq for sq, _ in pieces}
     for sq, is_king in pieces:
         if is_king:
-            base  = KING_VALUE
+            base = KING_VALUE
             base += king_pst.get(sq, 0)
             if phase < 0.3:
                 if sq in INNER_CENTER:
@@ -728,47 +798,40 @@ def _score_side(pieces: list, is_white: bool,
             if sq in DOUBLE_CORNER and phase > 0.6:
                 base += DOUBLE_CORNER_B
         else:
-            base  = PIECE_VALUE
+            base = PIECE_VALUE
             base += man_pst.get(sq, 0)
-            row   = (sq - 1) // 4
-            adv   = (7 - row) if is_white else row
+            row = (sq - 1) // 4
+            adv = (7 - row) if is_white else row
             base += adv * ADVANCEMENT_B
-            back  = WHITE_BACK_ROW if is_white else BLACK_BACK_ROW
+            back = WHITE_BACK_ROW if is_white else BLACK_BACK_ROW
             if sq in back:
                 base += BACK_ROW_BONUS
             if sq in INNER_CENTER:
                 base += INNER_CENTER_B
             elif sq in CENTER_SQUARES:
                 base += CENTER_BONUS
-
-        nb_count = sum(1 for n in NEIGHBORS.get(sq, []) if n in squares)
-        if nb_count >= 2:
-            score += PAWN_STRUCTURE_B
-        elif nb_count == 0 and not is_king:
-            score -= ISOLATION_PENALTY
-
+            nb_count = sum(1 for n in NEIGHBORS.get(sq, []) if n in squares)
+            if nb_count >= 2:
+                score += PAWN_STRUCTURE_B
+            elif nb_count == 0 and not is_king:
+                score -= ISOLATION_PENALTY
         score += base
-
     return score
 
 
 def _detect_structures(pieces: list, is_white: bool) -> float:
-    bonus   = 0.0
+    """كشف الهياكل التكتيكية"""
+    bonus = 0.0
     squares = {sq for sq, _ in pieces}
-
     if is_white:
-        if ({29, 30, 31}.issubset(squares) or
-                {30, 31, 32}.issubset(squares)):
+        if ({29, 30, 31}.issubset(squares) or {30, 31, 32}.issubset(squares)):
             bonus += TRIANGLE_BONUS
     else:
-        if ({1, 2, 3}.issubset(squares) or
-                {2, 3, 4}.issubset(squares)):
+        if ({1, 2, 3}.issubset(squares) or {2, 3, 4}.issubset(squares)):
             bonus += TRIANGLE_BONUS
-
     kings = [sq for sq, k in pieces if k]
     if len(kings) >= 2:
         bonus += BRIDGE_BONUS
-
     return bonus
 
 
@@ -781,8 +844,8 @@ def evaluate_position(board, ai_color) -> float:
     if not legal:
         return -MATE_SCORE if board.turn == ai_color else MATE_SCORE
 
-    fen     = get_board_fen(board)
-    wp, bp  = parse_fen_pieces(fen)
+    fen = get_board_fen(board)
+    wp, bp = parse_fen_pieces(fen)
 
     if not wp and not bp:
         return 0.0
@@ -790,8 +853,8 @@ def evaluate_position(board, ai_color) -> float:
     total = len(wp) + len(bp)
     phase = _game_phase(total)
 
-    w_score = _score_side(wp, True,  total, phase)
-    b_score = _score_side(bp, False, total, phase)
+    w_score = _score_side(wp, True, phase)
+    b_score = _score_side(bp, False, phase)
 
     w_score += _detect_structures(wp, True)
     b_score += _detect_structures(bp, False)
@@ -799,17 +862,16 @@ def evaluate_position(board, ai_color) -> float:
     safety = evaluate_safety(wp, bp, ai_color == WHITE)
 
     if ai_color == WHITE:
-        forks     = detect_forks(wp, bp, True)
+        forks = detect_forks(wp, bp, True)
         opp_forks = detect_forks(bp, wp, False)
     else:
-        forks     = detect_forks(bp, wp, False)
+        forks = detect_forks(bp, wp, False)
         opp_forks = detect_forks(wp, bp, True)
     fork_score = (forks - opp_forks) * FORK_BONUS
 
-    w_mat = (len(wp) * PIECE_VALUE +
-             sum(KING_VALUE for _, k in wp if k))
-    b_mat = (len(bp) * PIECE_VALUE +
-             sum(KING_VALUE for _, k in bp if k))
+    w_mat = (len(wp) * PIECE_VALUE + sum(KING_VALUE for _, k in wp if k))
+    b_mat = (len(bp) * PIECE_VALUE + sum(KING_VALUE for _, k in bp if k))
+
     trade = 0.0
     if ai_color == WHITE and w_mat > b_mat + PIECE_VALUE:
         trade = TRADE_BONUS * (w_mat - b_mat) / PIECE_VALUE
@@ -834,60 +896,50 @@ def evaluate_position(board, ai_color) -> float:
 # مطابقة الحركات
 # ════════════════════════════════════════════
 def _find_matching_move(orig_move, sim_moves: list):
+    """إيجاد الحركة المطابقة في قائمة الحركات المحاكاة"""
     if not sim_moves:
         return None
-
     orig_str = str(orig_move)
     orig_fmt = format_move_to_string(orig_move)
-
     for sm in sim_moves:
         if str(sm) == orig_str:
             return sm
-
     if hasattr(orig_move, 'steps_move') and orig_move.steps_move:
         orig_steps = tuple(orig_move.steps_move)
         for sm in sim_moves:
             if (hasattr(sm, 'steps_move') and sm.steps_move and
-                    tuple(sm.steps_move) == orig_steps):
+                tuple(sm.steps_move) == orig_steps):
                 return sm
-
     if hasattr(orig_move, 'pdn_move') and orig_move.pdn_move:
         orig_pdn = str(orig_move.pdn_move)
         for sm in sim_moves:
             if (hasattr(sm, 'pdn_move') and sm.pdn_move and
-                    str(sm.pdn_move) == orig_pdn):
+                str(sm.pdn_move) == orig_pdn):
                 return sm
-
     if orig_fmt and orig_fmt != "?":
         for sm in sim_moves:
             if format_move_to_string(sm) == orig_fmt:
                 return sm
-
     return None
 
 
 # ════════════════════════════════════════════
 # ترتيب الحركات
 # ════════════════════════════════════════════
-def _score_move_ordering(move, depth: int,
-                          prev_ms: str = "",
-                          is_q: bool = False) -> int:
+def _score_move_ordering(move, depth: int, prev_ms: str = "", is_q: bool = False) -> int:
+    """تقييم الحركة لأغراض الترتيب"""
     score = 0
     ms = format_move_to_string(move)
-
     if _is_capture(move):
         score += 25_000 + _capture_count(move) * 2_000
-
     if _is_promotion(move):
         score += 18_000
-
     if not is_q:
         if _order.is_killer(depth, ms):
             score += 12_000
         if prev_ms and _order.get_counter(prev_ms) == ms:
             score += 8_000
         score += min(_order.history.get(ms, 0), 6_000)
-
     if hasattr(move, 'steps_move') and move.steps_move:
         steps = list(move.steps_move)
         if steps:
@@ -896,13 +948,11 @@ def _score_move_ordering(move, depth: int,
                 score += 500
             elif dest in CENTER_SQUARES:
                 score += 250
-
     return score
 
 
-def _order_moves(moves: list, depth: int,
-                 prev_ms: str = "",
-                 is_q: bool = False) -> list:
+def _order_moves(moves: list, depth: int, prev_ms: str = "", is_q: bool = False) -> list:
+    """ترتيب الحركات حسب الأولوية"""
     try:
         return sorted(
             moves,
@@ -914,168 +964,186 @@ def _order_moves(moves: list, depth: int,
 
 
 # ════════════════════════════════════════════
-# Quiescence Search
+# Quiescence Search - مُصحح (Minimax style)
 # ════════════════════════════════════════════
-def quiescence(board, alpha: float, beta: float,
-               ai_color, deadline=None, qdepth: int = 0) -> float:
+def quiescence(board, alpha: float, beta: float, ai_color, maximizing: bool, deadline=None, qdepth: int = 0) -> float:
+    """
+    بحث الاستقرار (Quiescence Search).
+    مُصحح ليعمل بأسلوب Minimax بدلاً من Negamax لمنع تعارض التقييم.
+    """
     if deadline and time.time() > deadline:
         raise SearchTimeout()
 
     stand_pat = evaluate_position(board, ai_color)
-
-    if stand_pat >= beta:
-        return beta
-
-    DELTA = PIECE_VALUE * 2
-    if stand_pat + DELTA < alpha:
-        return alpha
-
-    if stand_pat > alpha:
-        alpha = stand_pat
-
     if qdepth >= 10:
         return stand_pat
 
-    legal    = get_legal_moves(board)
+    legal = get_legal_moves(board)
     captures = [m for m in legal if _is_capture(m)]
 
-    if not captures:
-        return alpha
+    if maximizing:
+        if stand_pat >= beta:
+            return beta
+        DELTA = PIECE_VALUE * 2
+        if stand_pat + DELTA < alpha:
+            return alpha
+        if stand_pat > alpha:
+            alpha = stand_pat
+        if not captures:
+            return stand_pat
 
-    captures = _order_moves(captures, 0, is_q=True)
-    fen      = get_board_fen(board)
-
-    for move in captures:
-        try:
-            sim      = Board(variant="english", fen=fen)
-            sim_mvs  = get_legal_moves(sim)
-            sim_move = _find_matching_move(move, sim_mvs)
-            if sim_move is None:
+        captures = _order_moves(captures, 0, is_q=True)
+        fen = get_board_fen(board)
+        for move in captures:
+            try:
+                sim = Board(variant="english", fen=fen)
+                sim_mvs = get_legal_moves(sim)
+                sim_move = _find_matching_move(move, sim_mvs)
+                if sim_move is None:
+                    continue
+                sim.push(sim_move)
+                score = quiescence(
+                    sim, alpha, beta, ai_color, False, deadline, qdepth + 1
+                )
+                if score >= beta:
+                    return beta
+                if score > alpha:
+                    alpha = score
+            except SearchTimeout:
+                raise
+            except Exception:
                 continue
-            sim.push(sim_move)
-            score = -quiescence(
-                sim, -beta, -alpha, ai_color, deadline, qdepth + 1
-            )
-            if score >= beta:
-                return beta
-            if score > alpha:
-                alpha = score
-        except SearchTimeout:
-            raise
-        except Exception:
-            continue
+        return alpha
+    else:
+        if stand_pat <= alpha:
+            return alpha
+        DELTA = PIECE_VALUE * 2
+        if stand_pat - DELTA > beta:
+            return beta
+        if stand_pat < beta:
+            beta = stand_pat
+        if not captures:
+            return stand_pat
 
-    return alpha
+        captures = _order_moves(captures, 0, is_q=True)
+        fen = get_board_fen(board)
+        for move in captures:
+            try:
+                sim = Board(variant="english", fen=fen)
+                sim_mvs = get_legal_moves(sim)
+                sim_move = _find_matching_move(move, sim_mvs)
+                if sim_move is None:
+                    continue
+                sim.push(sim_move)
+                score = quiescence(
+                    sim, alpha, beta, ai_color, True, deadline, qdepth + 1
+                )
+                if score <= alpha:
+                    return alpha
+                if score < beta:
+                    beta = score
+            except SearchTimeout:
+                raise
+            except Exception:
+                continue
+        return beta
 
 
 # ════════════════════════════════════════════
-# Minimax الرئيسي
+# Minimax الرئيسي - مُصحح
 # ════════════════════════════════════════════
-def minimax(board, depth: int, alpha: float, beta: float,
-            maximizing: bool, ai_color,
-            deadline=None, ply: int = 0,
-            prev_ms: str = "") -> float:
-
+def minimax(board, depth: int, alpha: float, beta: float, maximizing: bool, ai_color, deadline=None, ply: int = 0, prev_ms: str = "") -> float:
+    """
+    بحث Minimax مع Alpha-Beta Pruning.
+    مُصحح ليمرر maximizing إلى quiescence.
+    """
     if deadline and time.time() > deadline:
         raise SearchTimeout()
 
-    fen      = get_board_fen(board)
-    wp, bp   = parse_fen_pieces(fen)
+    fen = get_board_fen(board)
+    wp, bp = parse_fen_pieces(fen)
     pos_hash = _zobrist.compute(wp, bp, board.turn == WHITE)
-
     tt_val = _tt.lookup(pos_hash, depth, alpha, beta)
     if tt_val is not None:
         return tt_val
 
     legal = get_legal_moves(board)
-
     if not legal:
         s = (-MATE_SCORE + ply) if maximizing else (MATE_SCORE - ply)
         _tt.store(pos_hash, depth, s, TranspositionTable.EXACT)
         return s
 
     if depth <= 0:
-        s = quiescence(board, alpha, beta, ai_color, deadline)
+        s = quiescence(board, alpha, beta, ai_color, maximizing, deadline)
         _tt.store(pos_hash, 0, s, TranspositionTable.EXACT)
         return s
 
     # Null Move Pruning
     all_cap = all(_is_capture(m) for m in legal)
-    if (maximizing and depth >= 4 and not all_cap and
-            len(wp) >= 4 and len(bp) >= 4):
+    if (maximizing and depth >= 4 and not all_cap and len(wp) >= 4 and len(bp) >= 4):
         null_score = evaluate_position(board, ai_color)
         if null_score >= beta + 50:
             return beta
 
     tt_best = _tt.get_best_str(pos_hash)
     ordered = _order_moves(legal, ply, prev_ms)
-
     if tt_best:
         for i, m in enumerate(ordered):
             if format_move_to_string(m) == tt_best:
                 ordered.insert(0, ordered.pop(i))
                 break
 
-    orig_alpha    = alpha
-    best_score    = -INF if maximizing else INF
+    orig_alpha = alpha
+    best_score = -INF if maximizing else INF
     best_move_str = ""
-    tried         = 0
-
+    tried = 0
     for move in ordered:
         ms = format_move_to_string(move)
-
         try:
-            sim      = Board(variant="english", fen=fen)
-            sim_mvs  = get_legal_moves(sim)
+            sim = Board(variant="english", fen=fen)
+            sim_mvs = get_legal_moves(sim)
             sim_move = _find_matching_move(move, sim_mvs)
             if sim_move is None:
                 continue
             sim.push(sim_move)
         except Exception:
             continue
-
         tried += 1
 
         reduction = 0
-        if (tried > LMR_MIN_MOVES and
-                depth >= LMR_MIN_DEPTH and
-                not _is_capture(move) and
-                not _is_promotion(move) and
-                not _order.is_killer(ply, ms)):
+        if (tried > LMR_MIN_MOVES and depth >= LMR_MIN_DEPTH and
+            not _is_capture(move) and not _is_promotion(move) and
+            not _order.is_killer(ply, ms)):
             reduction = 1 + (1 if tried > LMR_MIN_MOVES * 3 else 0)
 
         if maximizing:
             score = minimax(
-                sim, depth - 1 - reduction,
-                alpha, beta, False, ai_color,
+                sim, depth - 1 - reduction, alpha, beta, False, ai_color,
                 deadline, ply + 1, ms
             )
             if reduction > 0 and alpha < score < beta:
                 score = minimax(
-                    sim, depth - 1,
-                    alpha, beta, False, ai_color,
+                    sim, depth - 1, alpha, beta, False, ai_color,
                     deadline, ply + 1, ms
                 )
             if score > best_score:
-                best_score    = score
+                best_score = score
                 best_move_str = ms
-            alpha = max(alpha, score)
+                alpha = max(alpha, score)
         else:
             score = minimax(
-                sim, depth - 1 - reduction,
-                alpha, beta, True, ai_color,
+                sim, depth - 1 - reduction, alpha, beta, True, ai_color,
                 deadline, ply + 1, ms
             )
             if reduction > 0 and alpha < score < beta:
                 score = minimax(
-                    sim, depth - 1,
-                    alpha, beta, True, ai_color,
+                    sim, depth - 1, alpha, beta, True, ai_color,
                     deadline, ply + 1, ms
                 )
             if score < best_score:
-                best_score    = score
+                best_score = score
                 best_move_str = ms
-            beta = min(beta, score)
+                beta = min(beta, score)
 
         if beta <= alpha:
             if not _is_capture(move):
@@ -1091,7 +1159,6 @@ def minimax(board, depth: int, alpha: float, beta: float,
         flag = TranspositionTable.LOWER
     else:
         flag = TranspositionTable.EXACT
-
     _tt.store(pos_hash, depth, best_score, flag, best_move_str)
     return best_score
 
@@ -1099,9 +1166,7 @@ def minimax(board, depth: int, alpha: float, beta: float,
 # ════════════════════════════════════════════
 # البحث الرئيسي
 # ════════════════════════════════════════════
-def find_best_move(original_board, ai_color,
-                   max_depth: int = MAX_DEPTH,
-                   time_limit: float = 5.0):
+def find_best_move(original_board, ai_color, max_depth: int = MAX_DEPTH, time_limit: float = 5.0):
     """
     Iterative Deepening + Aspiration Windows.
     Returns: (best_move, best_score, reached_depth)
@@ -1113,7 +1178,6 @@ def find_best_move(original_board, ai_color,
         return legal[0], 0, 1
 
     orig_fen = get_board_fen(original_board)
-
     book = OPENING_BOOK.get(orig_fen.strip())
     if book:
         book_str = random.choice(book)
@@ -1121,12 +1185,13 @@ def find_best_move(original_board, ai_color,
             if format_move_to_string(m) == book_str:
                 return m, 0, 0
 
-    ordered    = _order_moves(legal, 0)
-    best_move  = ordered[0]
+    ordered = _order_moves(legal, 0)
+    best_move = ordered[0]
     best_score = -INF
-    reached    = 0
-    start      = time.time()
-    deadline   = start + time_limit
+    reached = 0
+    start = time.time()
+    deadline = start + time_limit
+
     asp_window = 150
     prev_score = 0.0
 
@@ -1136,30 +1201,29 @@ def find_best_move(original_board, ai_color,
 
         if depth > 4 and abs(prev_score) < MATE_SCORE // 2:
             asp_alpha = prev_score - asp_window
-            asp_beta  = prev_score + asp_window
+            asp_beta = prev_score + asp_window
         else:
             asp_alpha = -INF
-            asp_beta  = INF
+            asp_beta = INF
 
         try:
-            d_best  = None
+            d_best = None
             d_score = -INF
-            alpha   = asp_alpha
-            beta    = asp_beta
-            failed  = False
+            alpha = asp_alpha
+            beta = asp_beta
+            failed = False
 
             for move in ordered:
                 try:
-                    sim      = Board(variant="english", fen=orig_fen)
-                    sim_mvs  = get_legal_moves(sim)
+                    sim = Board(variant="english", fen=orig_fen)
+                    sim_mvs = get_legal_moves(sim)
                     sim_move = _find_matching_move(move, sim_mvs)
                     if sim_move is None:
                         continue
                     sim.push(sim_move)
                     score = minimax(
-                        sim, depth - 1, alpha, beta,
-                        False, ai_color, deadline, 1,
-                        format_move_to_string(move)
+                        sim, depth - 1, alpha, beta, False, ai_color,
+                        deadline, 1, format_move_to_string(move)
                     )
                 except SearchTimeout:
                     raise
@@ -1168,28 +1232,27 @@ def find_best_move(original_board, ai_color,
 
                 if score > d_score:
                     d_score = score
-                    d_best  = move
-                alpha = max(alpha, score)
-
+                    d_best = move
+                    alpha = max(alpha, score)
                 if score >= beta or score <= asp_alpha:
                     failed = True
                     break
 
             if failed and d_best is None:
                 d_score = -INF
-                alpha   = -INF
-                beta    = INF
+                alpha = -INF
+                beta = INF
                 for move in ordered:
                     try:
-                        sim      = Board(variant="english", fen=orig_fen)
-                        sim_mvs  = get_legal_moves(sim)
+                        sim = Board(variant="english", fen=orig_fen)
+                        sim_mvs = get_legal_moves(sim)
                         sim_move = _find_matching_move(move, sim_mvs)
                         if sim_move is None:
                             continue
                         sim.push(sim_move)
                         score = minimax(
-                            sim, depth - 1, alpha, beta,
-                            False, ai_color, deadline, 1
+                            sim, depth - 1, alpha, beta, False, ai_color,
+                            deadline, 1
                         )
                     except SearchTimeout:
                         raise
@@ -1197,21 +1260,21 @@ def find_best_move(original_board, ai_color,
                         continue
                     if score > d_score:
                         d_score = score
-                        d_best  = move
-                    alpha = max(alpha, score)
+                        d_best = move
+                        alpha = max(alpha, score)
 
             if d_best is not None:
-                best_move  = d_best
+                best_move = d_best
                 best_score = d_score
-                reached    = depth
+                reached = depth
                 prev_score = d_score
                 asp_window = 150
                 if d_best in ordered:
                     ordered.remove(d_best)
                     ordered.insert(0, d_best)
 
-            if abs(best_score) > MATE_SCORE // 2:
-                break
+                if abs(best_score) > MATE_SCORE // 2:
+                    break
 
         except SearchTimeout:
             break
@@ -1223,6 +1286,7 @@ def find_best_move(original_board, ai_color,
 # تقييم مساعد الواجهة
 # ════════════════════════════════════════════
 def _get_advantage_text(score: float) -> str:
+    """نص يصف التفوق الحالي"""
     a = abs(score)
     if a < 100:
         return "⚖️ تعادل تام"
@@ -1237,6 +1301,7 @@ def _get_advantage_text(score: float) -> str:
 
 
 def _score_label(score: float) -> str:
+    """تسمية مختصرة للتقييم"""
     if score > MATE_SCORE // 2:
         return "فوز مؤكد ✅"
     if score < -MATE_SCORE // 2:
@@ -1246,10 +1311,9 @@ def _score_label(score: float) -> str:
     return "أفضل 🟢" if score > 0 else "أسوأ 🔴"
 
 
-def _generate_recommendation(best_move, best_score, move_scores,
-                               threats, phase, wp, bp,
-                               player_color) -> str:
-    lines    = []
+def _generate_recommendation(best_move, best_score, move_scores, threats, phase, wp, bp, player_color) -> str:
+    """توليد توصية نصية للاعب"""
+    lines = []
     best_str = format_move_to_string(best_move)
 
     if best_score > MATE_SCORE // 2:
@@ -1289,9 +1353,7 @@ def _generate_recommendation(best_move, best_score, move_scores,
     return "\n".join(lines)
 
 
-def analyze_position(board, player_color, ai_color,
-                     depth: int = 10,
-                     time_limit: float = 8.0) -> dict:
+def analyze_position(board, player_color, ai_color, depth: int = 10, time_limit: float = 8.0) -> dict:
     """
     تحليل شامل للموقف.
     مُصدَّرة علنياً.
@@ -1300,27 +1362,25 @@ def analyze_position(board, player_color, ai_color,
     if not legal:
         return {"error": "لا توجد حركات"}
 
-    fen     = get_board_fen(board)
-    wp, bp  = parse_fen_pieces(fen)
-    total   = len(wp) + len(bp)
-    phase   = _game_phase(total)
-
-    orig_fen    = fen
+    fen = get_board_fen(board)
+    wp, bp = parse_fen_pieces(fen)
+    total = len(wp) + len(bp)
+    phase = _game_phase(total)
+    orig_fen = fen
     move_scores = []
-    deadline    = time.time() + time_limit
-    ordered     = _order_moves(legal, 0)
+    deadline = time.time() + time_limit
 
+    ordered = _order_moves(legal, 0)
     for move in ordered:
         try:
-            sim      = Board(variant="english", fen=orig_fen)
-            sim_mvs  = get_legal_moves(sim)
+            sim = Board(variant="english", fen=orig_fen)
+            sim_mvs = get_legal_moves(sim)
             sim_move = _find_matching_move(move, sim_mvs)
             if sim_move is None:
                 continue
             sim.push(sim_move)
             score = minimax(
-                sim, depth - 1, -INF, INF,
-                False, player_color, deadline, 1
+                sim, depth - 1, -INF, INF, False, player_color, deadline, 1
             )
             move_scores.append((move, score))
         except SearchTimeout:
@@ -1331,8 +1391,8 @@ def analyze_position(board, player_color, ai_color,
     if not move_scores:
         for move in ordered[:8]:
             try:
-                sim      = Board(variant="english", fen=orig_fen)
-                sim_mvs  = get_legal_moves(sim)
+                sim = Board(variant="english", fen=orig_fen)
+                sim_mvs = get_legal_moves(sim)
                 sim_move = _find_matching_move(move, sim_mvs)
                 if sim_move is None:
                     continue
@@ -1351,20 +1411,19 @@ def analyze_position(board, player_color, ai_color,
     threats = detect_ui_threats(
         board, player_color, ai_color, fen, wp, bp
     )
-    advantage      = _get_advantage_text(best_score)
+    advantage = _get_advantage_text(best_score)
     recommendation = _generate_recommendation(
-        best_move, best_score, move_scores,
-        threats, phase, wp, bp, player_color
+        best_move, best_score, move_scores, threats, phase, wp, bp, player_color
     )
 
     top5 = [
         {
-            "move":         format_move_to_string(m),
-            "score":        s,
-            "label":        _score_label(s),
-            "is_capture":   _is_capture(m),
+            "move": format_move_to_string(m),
+            "score": s,
+            "label": _score_label(s),
+            "is_capture": _is_capture(m),
             "is_promotion": _is_promotion(m),
-            "cap_count":    _capture_count(m),
+            "cap_count": _capture_count(m),
         }
         for m, s in move_scores[:5]
     ]
@@ -1372,24 +1431,24 @@ def analyze_position(board, player_color, ai_color,
     threatened_mine = count_threatened_pieces(
         wp, bp, player_color == WHITE
     )
-    threatened_opp  = count_threatened_pieces(
+    threatened_opp = count_threatened_pieces(
         wp, bp, player_color != WHITE
     )
 
     return {
-        "best_move":       best_move,
-        "best_move_str":   format_move_to_string(best_move),
-        "score":           best_score,
-        "reached_depth":   depth,
-        "top_moves":       top5,
-        "threats":         threats,
-        "phase":           _phase_label(phase),
-        "phase_value":     phase,
-        "advantage":       advantage,
-        "recommendation":  recommendation,
-        "piece_balance":   len(wp) - len(bp),
-        "total_pieces":    total,
+        "best_move": best_move,
+        "best_move_str": format_move_to_string(best_move),
+        "score": best_score,
+        "reached_depth": depth,
+        "top_moves": top5,
+        "threats": threats,
+        "phase": _phase_label(phase),
+        "phase_value": phase,
+        "advantage": advantage,
+        "recommendation": recommendation,
+        "piece_balance": len(wp) - len(bp),
+        "total_pieces": total,
         "threatened_mine": threatened_mine,
-        "threatened_opp":  threatened_opp,
-        "safety_score":    evaluate_safety(wp, bp, player_color == WHITE),
+        "threatened_opp": threatened_opp,
+        "safety_score": evaluate_safety(wp, bp, player_color == WHITE),
     }
