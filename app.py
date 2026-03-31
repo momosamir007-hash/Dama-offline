@@ -1,6 +1,5 @@
 """
 لعبة الداما الكلاسيكية (8x8 - 12 قطعة) بواجهة رسومية - Streamlit
-مع أسهم بصرية دقيقة للحركات وزر للمساعدة
 """
 import re
 import streamlit as st
@@ -13,14 +12,15 @@ except ImportError:
     WHITE, BLACK = 2, 1
 
 from engine import (
-    find_best_move, evaluate_position, parse_fen_pieces,
-    DRAUGHTS_AVAILABLE, get_legal_moves, get_board_fen,
+    find_best_move,
+    evaluate_position,
+    parse_fen_pieces,
+    DRAUGHTS_AVAILABLE,
+    get_legal_moves,
+    get_board_fen,
     format_move_to_string,
 )
 
-# ════════════════════════════════════════════
-# إعدادات الصفحة
-# ════════════════════════════════════════════
 st.set_page_config(
     page_title="لعبة الداما | Checkers AI",
     page_icon="🎮",
@@ -33,7 +33,6 @@ st.set_page_config(
 # دوال مساعدة
 # ════════════════════════════════════════════
 def format_move(move):
-    """تنسيق الحركة للعرض + لرسم الأسهم"""
     result = format_move_to_string(move)
     return result if result else "حركة"
 
@@ -58,9 +57,6 @@ def is_game_over(board):
 
 
 def get_winner(board, player_color, ai_color):
-    """
-    ✅ تحديد الفائز بشكل صحيح
-    """
     if not is_game_over(board):
         return None
 
@@ -68,30 +64,41 @@ def get_winner(board, player_color, ai_color):
     w_total = w_men + w_kings
     b_total = b_men + b_kings
 
-    # ✅ لا قطع لكلا الجانبين = تعادل
     if w_total == 0 and b_total == 0:
         return 'draw'
 
-    # ✅ تحديد من فقد كل قطعه
     if w_total == 0:
-        # الأبيض خسر كل قطعه
         return 'ai' if player_color == WHITE else 'player'
 
     if b_total == 0:
-        # الأسود خسر كل قطعه
         return 'ai' if player_color == BLACK else 'player'
 
-    # ✅ اللاعب الذي لا يستطيع التحرك يخسر
-    # board.turn = الجانب الذي يجب أن يلعب ولكن ليس لديه حركات
     if board.turn == ai_color:
-        return 'player'  # الكمبيوتر لا يستطيع التحرك
+        return 'player'
     else:
-        return 'ai'  # اللاعب لا يستطيع التحرك
+        return 'ai'
 
 
 # ════════════════════════════════════════════
 # رسم الرقعة بـ SVG
 # ════════════════════════════════════════════
+def _draw_arrow(svg_parts, move_str, sq_coords, color, marker, dash, opacity):
+    if not move_str:
+        return
+    nums = [int(n) for n in re.findall(r'\d+', move_str)]
+    valid = [n for n in nums if n in sq_coords]
+    if len(valid) < 2:
+        return
+    pts = " ".join(f"{sq_coords[n][0]},{sq_coords[n][1]}" for n in valid)
+    svg_parts.append(
+        f'<polyline points="{pts}" fill="none" '
+        f'stroke="{color}" stroke-width="5" {dash} '
+        f'marker-end="url(#{marker})" '
+        f'stroke-linecap="round" stroke-linejoin="round" '
+        f'opacity="{opacity}"/>'
+    )
+
+
 def render_board_svg(board, last_move_str="", hint_move_str=""):
     CELL = 60
     BOARD_SIZE = CELL * 8
@@ -119,8 +126,7 @@ def render_board_svg(board, last_move_str="", hint_move_str=""):
 
     highlight_squares = set()
     if last_move_str:
-        nums = re.findall(r'\d+', last_move_str)
-        for n in nums:
+        for n in re.findall(r'\d+', last_move_str):
             try:
                 highlight_squares.add(int(n))
             except ValueError:
@@ -144,38 +150,23 @@ def render_board_svg(board, last_move_str="", hint_move_str=""):
             <stop offset="0%" stop-color="#555555"/>
             <stop offset="100%" stop-color="#1A1A1A"/>
         </radialGradient>
-        <marker id="arrow" viewBox="0 0 10 10"
-                refX="7" refY="5" markerWidth="5" markerHeight="5"
-                orient="auto-start-reverse">
+        <marker id="arrow" viewBox="0 0 10 10" refX="7" refY="5"
+                markerWidth="5" markerHeight="5" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#FF4500"/>
         </marker>
-        <marker id="hint-arrow" viewBox="0 0 10 10"
-                refX="7" refY="5" markerWidth="5" markerHeight="5"
-                orient="auto-start-reverse">
+        <marker id="hint-arrow" viewBox="0 0 10 10" refX="7" refY="5"
+                markerWidth="5" markerHeight="5" orient="auto-start-reverse">
             <path d="M 0 0 L 10 5 L 0 10 z" fill="#00FF00"/>
         </marker>
     </defs>""")
 
-    # الإطار الخارجي
-    svg.append(
-        f'<rect x="0" y="0" width="{TOTAL}" height="{TOTAL}" '
-        f'rx="6" fill="{FRAME_COLOR}"/>'
-    )
+    svg.append(f'<rect x="0" y="0" width="{TOTAL}" height="{TOTAL}" rx="6" fill="{FRAME_COLOR}"/>')
 
-    # أرقام الأعمدة والصفوف
     for i in range(8):
         cx = MARGIN + i * CELL + CELL // 2
-        svg.append(
-            f'<text x="{cx}" y="{MARGIN - 7}" text-anchor="middle" '
-            f'font-size="12" fill="#D4A76A" font-family="monospace">'
-            f'{chr(65 + i)}</text>'
-        )
+        svg.append(f'<text x="{cx}" y="{MARGIN - 7}" text-anchor="middle" font-size="12" fill="#D4A76A" font-family="monospace">{chr(65 + i)}</text>')
         cy = MARGIN + i * CELL + CELL // 2 + 4
-        svg.append(
-            f'<text x="{MARGIN - 10}" y="{cy}" text-anchor="middle" '
-            f'font-size="12" fill="#D4A76A" font-family="monospace">'
-            f'{8 - i}</text>'
-        )
+        svg.append(f'<text x="{MARGIN - 10}" y="{cy}" text-anchor="middle" font-size="12" fill="#D4A76A" font-family="monospace">{8 - i}</text>')
 
     sq_num = 0
     sq_coords = {}
@@ -186,10 +177,7 @@ def render_board_svg(board, last_move_str="", hint_move_str=""):
             y = MARGIN + r * CELL
             is_dark = (r + c) % 2 == 1
             fill = DARK_SQ if is_dark else LIGHT_SQ
-            svg.append(
-                f'<rect x="{x}" y="{y}" width="{CELL}" '
-                f'height="{CELL}" fill="{fill}"/>'
-            )
+            svg.append(f'<rect x="{x}" y="{y}" width="{CELL}" height="{CELL}" fill="{fill}"/>')
 
             if is_dark:
                 sq_num += 1
@@ -197,85 +185,31 @@ def render_board_svg(board, last_move_str="", hint_move_str=""):
                 cy_p = y + CELL // 2
                 sq_coords[sq_num] = (cx_p, cy_p)
 
-                # تظليل مربعات الحركة الأخيرة
                 if sq_num in highlight_squares:
-                    svg.append(
-                        f'<rect x="{x}" y="{y}" width="{CELL}" '
-                        f'height="{CELL}" fill="rgba(255,255,50,0.3)"/>'
-                    )
+                    svg.append(f'<rect x="{x}" y="{y}" width="{CELL}" height="{CELL}" fill="rgba(255,255,50,0.3)"/>')
 
-                # رقم المربع
-                svg.append(
-                    f'<text x="{x + 4}" y="{y + 14}" font-size="10" '
-                    f'fill="{NUM_COLOR}" font-family="monospace">'
-                    f'{sq_num}</text>'
-                )
+                svg.append(f'<text x="{x + 4}" y="{y + 14}" font-size="10" fill="{NUM_COLOR}" font-family="monospace">{sq_num}</text>')
 
-                # رسم القطعة
                 if sq_num in piece_map:
                     color, is_king = piece_map[sq_num]
                     grad = "url(#wg)" if color == 'white' else "url(#bg)"
                     stroke = WHITE_STROKE if color == 'white' else BLACK_STROKE
                     inner_s = "#D4B896" if color == 'white' else "#333333"
 
-                    svg.append(
-                        f'<circle cx="{cx_p}" cy="{cy_p}" r="{PIECE_R}" '
-                        f'fill="{grad}" stroke="{stroke}" stroke-width="2" '
-                        f'filter="url(#ps)"/>'
-                    )
-                    svg.append(
-                        f'<circle cx="{cx_p}" cy="{cy_p}" r="{INNER_R}" '
-                        f'fill="none" stroke="{inner_s}" stroke-width="1.5" '
-                        f'opacity="0.6"/>'
-                    )
+                    svg.append(f'<circle cx="{cx_p}" cy="{cy_p}" r="{PIECE_R}" fill="{grad}" stroke="{stroke}" stroke-width="2" filter="url(#ps)"/>')
+                    svg.append(f'<circle cx="{cx_p}" cy="{cy_p}" r="{INNER_R}" fill="none" stroke="{inner_s}" stroke-width="1.5" opacity="0.6"/>')
+
                     if is_king:
                         crown_c = CROWN_W if color == 'white' else CROWN_B
-                        svg.append(
-                            f'<text x="{cx_p}" y="{cy_p + 7}" '
-                            f'text-anchor="middle" font-size="20" '
-                            f'fill="{crown_c}" font-weight="bold">♛</text>'
-                        )
+                        svg.append(f'<text x="{cx_p}" y="{cy_p + 7}" text-anchor="middle" font-size="20" fill="{crown_c}" font-weight="bold">♛</text>')
 
-    # إطار الرقعة الداخلي
-    svg.append(
-        f'<rect x="{MARGIN}" y="{MARGIN}" '
-        f'width="{BOARD_SIZE}" height="{BOARD_SIZE}" '
-        f'fill="none" stroke="{FRAME_COLOR}" stroke-width="2"/>'
-    )
+    svg.append(f'<rect x="{MARGIN}" y="{MARGIN}" width="{BOARD_SIZE}" height="{BOARD_SIZE}" fill="none" stroke="{FRAME_COLOR}" stroke-width="2"/>')
 
-    # ✅ رسم سهم الحركة الأخيرة (برتقالي)
-    _draw_arrow(svg, last_move_str, sq_coords,
-                color="#FF4500", marker="arrow",
-                dash="", opacity="0.85")
-
-    # ✅ رسم سهم المساعدة (أخضر متقطع)
-    _draw_arrow(svg, hint_move_str, sq_coords,
-                color="#00FF00", marker="hint-arrow",
-                dash='stroke-dasharray="8,8"', opacity="0.9")
+    _draw_arrow(svg, last_move_str, sq_coords, "#FF4500", "arrow", "", "0.85")
+    _draw_arrow(svg, hint_move_str, sq_coords, "#00FF00", "hint-arrow", 'stroke-dasharray="8,8"', "0.9")
 
     svg.append('</svg>')
     return '\n'.join(svg)
-
-
-def _draw_arrow(svg_parts, move_str, sq_coords,
-                color, marker, dash, opacity):
-    """✅ دالة مشتركة لرسم الأسهم"""
-    if not move_str:
-        return
-    nums = [int(n) for n in re.findall(r'\d+', move_str)]
-    valid = [n for n in nums if n in sq_coords]
-    if len(valid) < 2:
-        return
-    pts = " ".join(
-        f"{sq_coords[n][0]},{sq_coords[n][1]}" for n in valid
-    )
-    svg_parts.append(
-        f'<polyline points="{pts}" fill="none" '
-        f'stroke="{color}" stroke-width="5" {dash} '
-        f'marker-end="url(#{marker})" '
-        f'stroke-linecap="round" stroke-linejoin="round" '
-        f'opacity="{opacity}"/>'
-    )
 
 
 # ════════════════════════════════════════════
@@ -317,14 +251,11 @@ def play_human_move():
 
     st.session_state.move_history.append(("👤", move_str))
     st.session_state.last_move = move_str
-    st.session_state.hint_move = ""  # مسح التلميح
+    st.session_state.hint_move = ""
 
     if is_game_over(board):
         st.session_state.game_over = True
-        st.session_state.winner = get_winner(
-            board, st.session_state.player_color,
-            st.session_state.ai_color
-        )
+        st.session_state.winner = get_winner(board, st.session_state.player_color, st.session_state.ai_color)
     else:
         st.session_state.pending_ai = True
 
@@ -334,26 +265,19 @@ def play_ai_move():
     ai_color = st.session_state.ai_color
     depth = st.session_state.depth
 
-    best_move, score, reached = find_best_move(
-        board, ai_color, max_depth=depth, time_limit=3.5
-    )
+    best_move, score, reached = find_best_move(board, ai_color, max_depth=depth, time_limit=3.5)
 
     if best_move:
         move_str = format_move(best_move)
         board.push(best_move)
-
         st.session_state.move_history.append(("🤖", move_str))
         st.session_state.last_move = move_str
         st.session_state.hint_move = ""
-        st.session_state.ai_info = (
-            f"العمق: {reached} | التقييم: {score:+.1f}"
-        )
+        st.session_state.ai_info = f"العمق: {reached} | التقييم: {score:+.1f}"
 
         if is_game_over(board):
             st.session_state.game_over = True
-            st.session_state.winner = get_winner(
-                board, st.session_state.player_color, ai_color
-            )
+            st.session_state.winner = get_winner(board, st.session_state.player_color, ai_color)
         else:
             st.session_state.pending_ai = False
     else:
@@ -384,72 +308,21 @@ def undo_move():
 def inject_css():
     st.markdown("""
     <style>
-        @import url(
-            'https://fonts.googleapis.com/css2?family=Tajawal'
-            ':wght@400;700;900&display=swap'
-        );
-        .main-title {
-            text-align:center; font-family:'Tajawal',sans-serif;
-            font-size:2.4rem; font-weight:900;
-            background:linear-gradient(135deg,#FFD700,#FF8C00);
-            -webkit-background-clip:text;
-            -webkit-text-fill-color:transparent;
-            margin-bottom:0; padding:10px 0;
-        }
-        .sub-title {
-            text-align:center; font-family:'Tajawal',sans-serif;
-            color:#888; font-size:1rem;
-            margin-top:-10px; margin-bottom:20px;
-        }
-        .board-container {
-            display:flex; justify-content:center; padding:10px 0;
-        }
-        .status-box {
-            text-align:center; padding:12px 20px;
-            border-radius:10px; font-family:'Tajawal',sans-serif;
-            font-size:1.1rem; font-weight:700;
-            margin:10px auto; max-width:500px;
-        }
-        .status-player {
-            background:linear-gradient(135deg,#1B5E20,#2E7D32);
-            color:#FFF; border:2px solid #4CAF50;
-        }
-        .status-ai {
-            background:linear-gradient(135deg,#B71C1C,#C62828);
-            color:#FFF; border:2px solid #EF5350;
-        }
-        .status-win {
-            background:linear-gradient(135deg,#F9A825,#FFD54F);
-            color:#1A1A1A; border:2px solid #FFD700;
-            font-size:1.3rem;
-        }
-        .status-lose {
-            background:linear-gradient(135deg,#424242,#616161);
-            color:#FFF; border:2px solid #9E9E9E;
-        }
-        .status-draw {
-            background:linear-gradient(135deg,#0D47A1,#1565C0);
-            color:#FFF; border:2px solid #42A5F5;
-        }
-        .info-card {
-            background:rgba(255,255,255,0.05);
-            border:1px solid rgba(255,255,255,0.1);
-            border-radius:8px; padding:12px; margin:8px 0;
-            font-family:'Tajawal',sans-serif;
-        }
-        .piece-count {
-            display:flex; justify-content:space-around;
-            align-items:center; padding:8px;
-        }
-        .piece-side {
-            text-align:center;
-            font-family:'Tajawal',sans-serif;
-        }
-        .piece-num { font-size:1.8rem; font-weight:900; }
-        .history-item {
-            font-family:'Tajawal',monospace;
-            padding:2px 0; font-size:0.9rem;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap');
+        .main-title{text-align:center;font-family:'Tajawal',sans-serif;font-size:2.4rem;font-weight:900;background:linear-gradient(135deg,#FFD700,#FF8C00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:0;padding:10px 0}
+        .sub-title{text-align:center;font-family:'Tajawal',sans-serif;color:#888;font-size:1rem;margin-top:-10px;margin-bottom:20px}
+        .board-container{display:flex;justify-content:center;padding:10px 0}
+        .status-box{text-align:center;padding:12px 20px;border-radius:10px;font-family:'Tajawal',sans-serif;font-size:1.1rem;font-weight:700;margin:10px auto;max-width:500px}
+        .status-player{background:linear-gradient(135deg,#1B5E20,#2E7D32);color:#FFF;border:2px solid #4CAF50}
+        .status-ai{background:linear-gradient(135deg,#B71C1C,#C62828);color:#FFF;border:2px solid #EF5350}
+        .status-win{background:linear-gradient(135deg,#F9A825,#FFD54F);color:#1A1A1A;border:2px solid #FFD700;font-size:1.3rem}
+        .status-lose{background:linear-gradient(135deg,#424242,#616161);color:#FFF;border:2px solid #9E9E9E}
+        .status-draw{background:linear-gradient(135deg,#0D47A1,#1565C0);color:#FFF;border:2px solid #42A5F5}
+        .info-card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;margin:8px 0;font-family:'Tajawal',sans-serif}
+        .piece-count{display:flex;justify-content:space-around;align-items:center;padding:8px}
+        .piece-side{text-align:center;font-family:'Tajawal',sans-serif}
+        .piece-num{font-size:1.8rem;font-weight:900}
+        .history-item{font-family:'Tajawal',monospace;padding:2px 0;font-size:0.9rem}
     </style>
     """, unsafe_allow_html=True)
 
@@ -465,30 +338,14 @@ def main():
         st.code("pip install pydraughts", language="bash")
         st.stop()
 
-    st.markdown(
-        '<div class="main-title">♟️ لعبة الداما الكلاسيكية</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        '<div class="sub-title">8×8 | 12 قطعة | محرك Minimax</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="main-title">♟️ لعبة الداما الكلاسيكية</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">8×8 | 12 قطعة | محرك Minimax</div>', unsafe_allow_html=True)
 
-    # ─── الشريط الجانبي ───
     with st.sidebar:
         st.markdown("## ⚙️ إعدادات اللعبة")
+        color_choice = st.radio("🎨 اختر لونك:", ["⬜ أبيض (تبدأ أنت)", "⬛ أسود (يبدأ الكمبيوتر)"], index=0)
+        difficulty = st.select_slider("🎯 مستوى الصعوبة:", options=["سهل", "متوسط", "صعب", "خبير"], value="متوسط")
 
-        color_choice = st.radio(
-            "🎨 اختر لونك:",
-            ["⬜ أبيض (تبدأ أنت)", "⬛ أسود (يبدأ الكمبيوتر)"],
-            index=0,
-        )
-
-        difficulty = st.select_slider(
-            "🎯 مستوى الصعوبة:",
-            options=["سهل", "متوسط", "صعب", "خبير"],
-            value="متوسط",
-        )
         depth_map = {"سهل": 2, "متوسط": 4, "صعب": 5, "خبير": 6}
         depth = depth_map[difficulty]
 
@@ -497,10 +354,7 @@ def main():
         with col_new:
             new_game = st.button("🆕 لعبة جديدة", use_container_width=True)
         with col_undo:
-            undo = st.button(
-                "↩️ تراجع", use_container_width=True,
-                disabled=not st.session_state.get("game_started", False),
-            )
+            undo = st.button("↩️ تراجع", use_container_width=True, disabled=not st.session_state.get("game_started", False))
 
         if new_game:
             if "أبيض" in color_choice:
@@ -513,7 +367,6 @@ def main():
             undo_move()
             st.rerun()
 
-        # ─── الإحصائيات ───
         if st.session_state.get("game_started"):
             board = st.session_state.board
             w_men, w_kings, b_men, b_kings = count_pieces(board)
@@ -529,24 +382,18 @@ def main():
                     <div class="piece-side">
                         <div style="font-size:1.5rem">⬜</div>
                         <div class="piece-num">{w_total}</div>
-                        <div style="font-size:0.8rem">
-                            {w_men} قطعة {king_w}
-                        </div>
+                        <div style="font-size:0.8rem">{w_men} قطعة {king_w}</div>
                     </div>
                     <div style="font-size:1.5rem;color:#666">⚔️</div>
                     <div class="piece-side">
                         <div style="font-size:1.5rem">⬛</div>
                         <div class="piece-num">{b_total}</div>
-                        <div style="font-size:0.8rem">
-                            {b_men} قطعة {king_b}
-                        </div>
+                        <div style="font-size:0.8rem">{b_men} قطعة {king_b}</div>
                     </div>
                 </div></div>
             """, unsafe_allow_html=True)
 
-            st.markdown(
-                f"📝 عدد الحركات: **{len(st.session_state.move_history)}**"
-            )
+            st.markdown(f"📝 عدد الحركات: **{len(st.session_state.move_history)}**")
             if st.session_state.ai_info:
                 st.markdown(f"🧠 {st.session_state.ai_info}")
 
@@ -554,28 +401,16 @@ def main():
                 st.markdown("---")
                 st.markdown("### 📜 سجل الحركات")
                 with st.container(height=250):
-                    for i, (who, mv) in enumerate(
-                        st.session_state.move_history, 1
-                    ):
-                        st.markdown(
-                            f'<div class="history-item">'
-                            f'{i}. {who} {mv}</div>',
-                            unsafe_allow_html=True,
-                        )
+                    for i, (who, mv) in enumerate(st.session_state.move_history, 1):
+                        st.markdown(f'<div class="history-item">{i}. {who} {mv}</div>', unsafe_allow_html=True)
 
-    # ─── الشاشة الرئيسية ───
     if not st.session_state.get("game_started"):
         st.markdown("---")
         st.info("👈 اضغط **'لعبة جديدة'** في الشريط الجانبي للبدء")
         demo = Board(variant="english")
-        st.markdown(
-            f'<div class="board-container">'
-            f'{render_board_svg(demo)}</div>',
-            unsafe_allow_html=True,
-        )
+        st.markdown(f'<div class="board-container">{render_board_svg(demo)}</div>', unsafe_allow_html=True)
         st.stop()
 
-    # ─── حركة الكمبيوتر ───
     if st.session_state.pending_ai and not st.session_state.game_over:
         with st.spinner("🤖 الكمبيوتر يفكر..."):
             play_ai_move()
@@ -585,56 +420,26 @@ def main():
     player_color = st.session_state.player_color
     ai_color = st.session_state.ai_color
 
-    # ─── حالة اللعبة ───
     if st.session_state.game_over:
         winner = st.session_state.winner
         if winner == 'player':
-            st.markdown(
-                '<div class="status-box status-win">'
-                '🎉 مبروك! لقد فزت!</div>',
-                unsafe_allow_html=True,
-            )
+            st.markdown('<div class="status-box status-win">🎉 مبروك! لقد فزت!</div>', unsafe_allow_html=True)
             if not st.session_state.get("celebrated"):
                 st.balloons()
                 st.session_state.celebrated = True
         elif winner == 'ai':
-            st.markdown(
-                '<div class="status-box status-lose">'
-                '💻 الكمبيوتر فاز! حاول مرة أخرى</div>',
-                unsafe_allow_html=True,
-            )
+            st.markdown('<div class="status-box status-lose">💻 الكمبيوتر فاز! حاول مرة أخرى</div>', unsafe_allow_html=True)
         else:
-            st.markdown(
-                '<div class="status-box status-draw">'
-                '🤝 تعادل!</div>',
-                unsafe_allow_html=True,
-            )
+            st.markdown('<div class="status-box status-draw">🤝 تعادل!</div>', unsafe_allow_html=True)
     else:
         if board.turn == player_color:
-            st.markdown(
-                '<div class="status-box status-player">'
-                '👤 دورك الآن</div>',
-                unsafe_allow_html=True,
-            )
+            st.markdown('<div class="status-box status-player">👤 دورك الآن</div>', unsafe_allow_html=True)
         else:
-            st.markdown(
-                '<div class="status-box status-ai">'
-                '🤖 دور الكمبيوتر</div>',
-                unsafe_allow_html=True,
-            )
+            st.markdown('<div class="status-box status-ai">🤖 دور الكمبيوتر</div>', unsafe_allow_html=True)
 
-    # ─── رسم الرقعة ───
-    board_svg = render_board_svg(
-        board,
-        st.session_state.get("last_move", ""),
-        st.session_state.get("hint_move", ""),
-    )
-    st.markdown(
-        f'<div class="board-container">{board_svg}</div>',
-        unsafe_allow_html=True,
-    )
+    board_svg = render_board_svg(board, st.session_state.get("last_move", ""), st.session_state.get("hint_move", ""))
+    st.markdown(f'<div class="board-container">{board_svg}</div>', unsafe_allow_html=True)
 
-    # ─── اختيار الحركة ───
     if not st.session_state.game_over and board.turn == player_color:
         legal_moves = get_legal_moves(board)
         if legal_moves:
@@ -642,33 +447,18 @@ def main():
             move_labels = [format_move(m) for m in legal_moves]
 
             col_sel, col_btn, col_hint = st.columns([2, 1, 1])
-
             with col_sel:
-                st.selectbox(
-                    "🎯 اختر حركتك:",
-                    range(len(move_labels)),
-                    format_func=lambda i: f"[{i}] {move_labels[i]}",
-                    key="move_select",
-                )
-
+                st.selectbox("🎯 اختر حركتك:", range(len(move_labels)), format_func=lambda i: f"[{i}] {move_labels[i]}", key="move_select")
             with col_btn:
                 st.markdown("<br>", unsafe_allow_html=True)
-                if st.button(
-                    "▶️ العب!",
-                    use_container_width=True,
-                    type="primary",
-                ):
+                if st.button("▶️ العب!", use_container_width=True, type="primary"):
                     play_human_move()
                     st.rerun()
-
             with col_hint:
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.button("💡 مساعدة", use_container_width=True):
                     with st.spinner("جاري تحليل الرقعة..."):
-                        hint_mv, _, _ = find_best_move(
-                            board, player_color,
-                            max_depth=4, time_limit=2.0,
-                        )
+                        hint_mv, _, _ = find_best_move(board, player_color, max_depth=4, time_limit=2.0)
                         if hint_mv:
                             st.session_state.hint_move = format_move(hint_mv)
                     st.rerun()
