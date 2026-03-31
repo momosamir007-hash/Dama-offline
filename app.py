@@ -1,9 +1,13 @@
+""" لعبة الداما الكلاسيكية - واجهة Streamlit المتقدمة
+=============================================
+النسخة المُصححة والنهائية - تم إصلاح الواجهة للهواتف، رسم القطع، ومشكلة الاستيراد
+"""
 
 import re
 import time
 import streamlit as st
 
-# استيراد آمن وتوافق مع وجود أو غياب مكتبة pydraughts
+# استيراد آمن وتوافق مع وجود أو غياب مكتبة pydraughts (بدون count_pieces لتجنب الخطأ)
 from engine import (
     get_legal_moves, get_board_fen, format_move_to_string, parse_fen_pieces,
     evaluate_position, find_best_move, analyze_position, _is_capture,
@@ -35,9 +39,15 @@ def inject_css():
     st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;700;900&display=swap');
-    html, body, [class*="css"] {
+    
+    /* التعديل الجوهري لحل مشكلة الموبايل والشريط الجانبي */
+    html, body {
         direction: rtl;
     }
+    .stApp {
+        direction: rtl;
+    }
+    
     .main-title {
         text-align: center;
         font-family: 'Tajawal', sans-serif;
@@ -548,9 +558,7 @@ def _draw_arrow(svg_parts, mv_str, sq_coords, arrow_color, marker_id, dash_style
 def render_board(board, last_move="", hint_move="", threatened_squares=None) -> str:
     """
     رسم رقعة الداما كـ SVG كامل.
-    - last_move: سهم برتقالي للحركة الأخيرة
-    - hint_move: سهم أخضر منقط للتلميح
-    - threatened_squares: مجموعة مربعات القطع المهددة
+    - تم إصلاح التكرار البصري للقطع (الآن تُرسم على المربعات الداكنة فقط).
     """
     CELL_SIZE = 66
     BOARD_SZ = CELL_SIZE * 8
@@ -662,101 +670,59 @@ def render_board(board, last_move="", hint_move="", threatened_squares=None) -> 
             y_pos = MARGIN + row * CELL_SIZE
             is_dark = (row + col) % 2 == 1
             sq_color = "#B58863" if is_dark else "#F0D9B5"
+            
+            # رسم المربع الأساسي (فاتح أو داكن)
             svg.append(
                 f'<rect x="{x_pos}" y="{y_pos}" '
                 f'width="{CELL_SIZE}" height="{CELL_SIZE}" '
                 f'fill="{sq_color}"/>'
             )
+            
+            # كل ما يتعلق بالقطع والأرقام يجب أن يكون للمربعات الداكنة فقط
             if is_dark:
                 sq_number += 1
-            center_x = x_pos + CELL_SIZE // 2
-            center_y = y_pos + CELL_SIZE // 2
-            sq_coords[sq_number] = (center_x, center_y)
+                center_x = x_pos + CELL_SIZE // 2
+                center_y = y_pos + CELL_SIZE // 2
+                sq_coords[sq_number] = (center_x, center_y)
 
-            # تظليل آخر حركة
-            if sq_number in hl_last:
-                svg.append(
-                    f'<rect x="{x_pos}" y="{y_pos}" '
-                    f'width="{CELL_SIZE}" height="{CELL_SIZE}" '
-                    f'fill="rgba(255,220,50,0.30)"/>'
-                )
-            # تظليل التلميح
-            if sq_number in hl_hint:
-                svg.append(
-                    f'<rect x="{x_pos}" y="{y_pos}" '
-                    f'width="{CELL_SIZE}" height="{CELL_SIZE}" '
-                    f'fill="rgba(0,220,80,0.20)"/>'
-                )
-            # تظليل القطع المهددة بالأحمر
-            if sq_number in TS:
-                svg.append(
-                    f'<rect x="{x_pos}" y="{y_pos}" '
-                    f'width="{CELL_SIZE}" height="{CELL_SIZE}" '
-                    f'fill="rgba(255,30,30,0.22)"/>'
-                )
-                svg.append(
-                    f'<rect x="{x_pos}" y="{y_pos}" '
-                    f'width="{CELL_SIZE}" height="{CELL_SIZE}" '
-                    f'fill="none" stroke="rgba(255,60,60,0.6)" '
-                    f'stroke-width="2"/>'
-                )
+                # تظليل آخر حركة
+                if sq_number in hl_last:
+                    svg.append(f'<rect x="{x_pos}" y="{y_pos}" width="{CELL_SIZE}" height="{CELL_SIZE}" fill="rgba(255,220,50,0.30)"/>')
+                # تظليل التلميح
+                if sq_number in hl_hint:
+                    svg.append(f'<rect x="{x_pos}" y="{y_pos}" width="{CELL_SIZE}" height="{CELL_SIZE}" fill="rgba(0,220,80,0.20)"/>')
+                # تظليل القطع المهددة بالأحمر
+                if sq_number in TS:
+                    svg.append(f'<rect x="{x_pos}" y="{y_pos}" width="{CELL_SIZE}" height="{CELL_SIZE}" fill="rgba(255,30,30,0.22)"/>')
+                    svg.append(f'<rect x="{x_pos}" y="{y_pos}" width="{CELL_SIZE}" height="{CELL_SIZE}" fill="none" stroke="rgba(255,60,60,0.6)" stroke-width="2"/>')
 
-            # رقم المربع
-            svg.append(
-                f'<text x="{x_pos + 4}" y="{y_pos + 14}" '
-                f'font-size="10" fill="rgba(255,255,255,0.26)" '
-                f'font-family="monospace">{sq_number}</text>'
-            )
+                # رقم المربع
+                svg.append(f'<text x="{x_pos + 4}" y="{y_pos + 14}" font-size="10" fill="rgba(255,255,255,0.26)" font-family="monospace">{sq_number}</text>')
 
-            # رسم القطعة
-            if sq_number in piece_map:
-                piece_color, is_king = piece_map[sq_number]
-                gradient = "url(#wg)" if piece_color == 'w' else "url(#bg)"
-                stroke_c = "#BFA070" if piece_color == 'w' else "#111111"
-                inner_c = "#D4B896" if piece_color == 'w' else "#2A2A2A"
-                is_danger = sq_number in TS
+                # رسم القطعة
+                if sq_number in piece_map:
+                    piece_color, is_king = piece_map[sq_number]
+                    gradient = "url(#wg)" if piece_color == 'w' else "url(#bg)"
+                    stroke_c = "#BFA070" if piece_color == 'w' else "#111111"
+                    inner_c = "#D4B896" if piece_color == 'w' else "#2A2A2A"
+                    is_danger = sq_number in TS
 
-                # ظل القطعة
-                svg.append(
-                    f'<circle cx="{center_x + 1}" cy="{center_y + 3}" '
-                    f'r="{PIECE_R}" fill="rgba(0,0,0,0.4)"/>'
-                )
-                # جسم القطعة
-                if is_danger:
-                    svg.append(
-                        f'<circle cx="{center_x}" cy="{center_y}" '
-                        f'r="{PIECE_R}" fill="{gradient}" '
-                        f'stroke="#FF4444" stroke-width="3.5" '
-                        f'filter="url(#danger-glow)"/>'
-                    )
-                else:
-                    svg.append(
-                        f'<circle cx="{center_x}" cy="{center_y}" '
-                        f'r="{PIECE_R}" fill="{gradient}" '
-                        f'stroke="{stroke_c}" stroke-width="2.5" '
-                        f'filter="url(#sh)"/>'
-                    )
-                # الحلقة الداخلية
-                svg.append(
-                    f'<circle cx="{center_x}" cy="{center_y}" '
-                    f'r="{INNER_R}" fill="none" stroke="{inner_c}" '
-                    f'stroke-width="1.5" opacity="0.5"/>'
-                )
-                # رمز الملك
-                if is_king:
-                    crown_color = "#DAA520" if piece_color == 'w' else "#FFD700"
-                    svg.append(
-                        f'<text x="{center_x}" y="{center_y + 8}" '
-                        f'text-anchor="middle" font-size="24" '
-                        f'fill="{crown_color}" font-weight="bold" '
-                        f'filter="url(#glow)">♛</text>'
-                    )
-                # أيقونة التحذير للقطع المهددة
-                if is_danger:
-                    svg.append(
-                        f'<text x="{center_x + 18}" y="{center_y - 14}" '
-                        f'font-size="14" fill="#FF4444">⚠</text>'
-                    )
+                    # ظل القطعة
+                    svg.append(f'<circle cx="{center_x + 1}" cy="{center_y + 3}" r="{PIECE_R}" fill="rgba(0,0,0,0.4)"/>')
+                    # جسم القطعة
+                    if is_danger:
+                        svg.append(f'<circle cx="{center_x}" cy="{center_y}" r="{PIECE_R}" fill="{gradient}" stroke="#FF4444" stroke-width="3.5" filter="url(#danger-glow)"/>')
+                    else:
+                        svg.append(f'<circle cx="{center_x}" cy="{center_y}" r="{PIECE_R}" fill="{gradient}" stroke="{stroke_c}" stroke-width="2.5" filter="url(#sh)"/>')
+                    # الحلقة الداخلية
+                    svg.append(f'<circle cx="{center_x}" cy="{center_y}" r="{INNER_R}" fill="none" stroke="{inner_c}" stroke-width="1.5" opacity="0.5"/>')
+                    # رمز الملك
+                    if is_king:
+                        crown_color = "#DAA520" if piece_color == 'w' else "#FFD700"
+                        svg.append(f'<text x="{center_x}" y="{center_y + 8}" text-anchor="middle" font-size="24" fill="{crown_color}" font-weight="bold" filter="url(#glow)">♛</text>')
+                    # أيقونة التحذير للقطع المهددة
+                    if is_danger:
+                        svg.append(f'<text x="{center_x + 18}" y="{center_y - 14}" font-size="14" fill="#FF4444">⚠</text>')
 
     # حدود الرقعة
     svg.append(
@@ -1047,7 +1013,7 @@ def init_game(player_color, ai_color, depth, time_limit):
 
 
 def play_human_move(chosen_move):
-    """تنفيذ الحركة المختارة من اللاعب البشري (تم تأمين الاستدعاء)"""
+    """تنفيذ الحركة المختارة من اللاعب البشري"""
     if st.session_state.get('game_over'):
         return
     
@@ -1161,7 +1127,7 @@ def play_ai_move():
 def undo_move():
     """
     التراجع عن آخر حركتين (اللاعب + AI) بلمح البصر (Instant Undo).
-    تم تغيير النظام ليستخدم FEN بدلاً من إعادة محاكاة اللعبة من الصفر!
+    يستخدم FEN بدلاً من إعادة محاكاة اللعبة من الصفر.
     """
     history = st.session_state.get('move_history', [])
     if not history:
