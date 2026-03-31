@@ -20,19 +20,18 @@ ADVANCEMENT_BONUS = 0.5
 MOBILITY_WEIGHT = 0.3
 BACK_ROW_BONUS = 0.8
 
-# المربعات المركزية على الرقعة 8x8 (التي تحتوي على 32 مربعاً للعب)
 CENTER_SQUARES = {10, 11, 14, 15, 18, 19, 22, 23}
 INNER_CENTER = {14, 15, 18, 19}
-
-# حماية الصف الخلفي في 8x8
 WHITE_BACK_ROW = {29, 30, 31, 32}
 BLACK_BACK_ROW = {1, 2, 3, 4}
 
+def get_legal_moves(board):
+    """جلب الحركات المتاحة بشكل آمن (يدعم الدوال والخصائص لتجنب TypeError)"""
+    if callable(board.legal_moves):
+        return list(board.legal_moves())
+    return list(board.legal_moves)
+
 def parse_fen_pieces(fen_str):
-    """
-    يحلّل نص FEN ويعيد قوائم القطع لكل لون.
-    يعيد: (قائمة_الأبيض, قائمة_الأسود)
-    """
     try:
         if callable(fen_str):
             fen_str = fen_str()
@@ -71,8 +70,7 @@ def parse_fen_pieces(fen_str):
         return [], []
 
 def evaluate_position(board, ai_color):
-    """تقييم شامل للموقف لرقعة 8x8"""
-    legal_moves = list(board.legal_moves)
+    legal_moves = get_legal_moves(board)
     if not legal_moves:
         if board.turn == ai_color:
             return -100000
@@ -103,7 +101,6 @@ def evaluate_position(board, ai_color):
     return base
 
 def _score_side(pieces, is_white):
-    """يحسب نتيجة جانب واحد لـ 8x8."""
     score = 0.0
     for sq, is_king in pieces:
         if is_king:
@@ -114,14 +111,8 @@ def _score_side(pieces, is_white):
                 score += CENTER_BONUS
         else:
             score += PIECE_VALUE
-            
-            # في 8x8 كل صف يحتوي على 4 مربعات
             row = (sq - 1) // 4
-            if is_white:
-                advancement = 7 - row 
-            else:
-                advancement = row
-                
+            advancement = 7 - row if is_white else row
             score += advancement * ADVANCEMENT_BONUS
             
             if sq in INNER_CENTER:
@@ -132,11 +123,10 @@ def _score_side(pieces, is_white):
             back_row = WHITE_BACK_ROW if is_white else BLACK_BACK_ROW
             if sq in back_row:
                 score += BACK_ROW_BONUS
-                
     return score
 
 def minimax(board, depth, alpha, beta, maximizing, ai_color, deadline=None):
-    legal_moves = list(board.legal_moves)
+    legal_moves = get_legal_moves(board)
     if deadline and time.time() > deadline:
         return evaluate_position(board, ai_color), None
 
@@ -150,13 +140,11 @@ def minimax(board, depth, alpha, beta, maximizing, ai_color, deadline=None):
             board.push(move)
             score, _ = minimax(board, depth - 1, alpha, beta, False, ai_color, deadline)
             board.pop()
-            
             if score > max_eval:
                 max_eval = score
                 best_move = move
             alpha = max(alpha, score)
-            if beta <= alpha:
-                break
+            if beta <= alpha: break
         return max_eval, best_move
     else:
         min_eval = math.inf
@@ -164,21 +152,17 @@ def minimax(board, depth, alpha, beta, maximizing, ai_color, deadline=None):
             board.push(move)
             score, _ = minimax(board, depth - 1, alpha, beta, True, ai_color, deadline)
             board.pop()
-            
             if score < min_eval:
                 min_eval = score
                 best_move = move
             beta = min(beta, score)
-            if beta <= alpha:
-                break
+            if beta <= alpha: break
         return min_eval, best_move
 
 def find_best_move(board, ai_color, max_depth=5, time_limit=25.0):
-    legal_moves = list(board.legal_moves)
-    if not legal_moves:
-        return None, 0, 0
-    if len(legal_moves) == 1:
-        return legal_moves[0], 0, 1
+    legal_moves = get_legal_moves(board)
+    if not legal_moves: return None, 0, 0
+    if len(legal_moves) == 1: return legal_moves[0], 0, 1
         
     start_time = time.time()
     deadline = start_time + time_limit
@@ -187,18 +171,14 @@ def find_best_move(board, ai_color, max_depth=5, time_limit=25.0):
     reached_depth = 0
     
     for depth in range(1, max_depth + 1):
-        if time.time() > deadline:
-            break
+        if time.time() > deadline: break
         try:
             score, move = minimax(board, depth, -math.inf, math.inf, True, ai_color, deadline)
             if move is not None:
                 best_move = move
                 best_score = score
                 reached_depth = depth
-        except Exception:
-            break
-            
-        if abs(best_score) > 90000:
-            break
+        except Exception: break
+        if abs(best_score) > 90000: break
             
     return best_move, best_score, reached_depth
