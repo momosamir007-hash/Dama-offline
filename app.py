@@ -8,7 +8,7 @@ from engine import (
     get_legal_moves, get_board_fen, format_move_to_string, parse_fen_pieces,
     evaluate_position, find_best_move, analyze_position, _is_capture,
     _is_promotion, _capture_count, _phase_label, _game_phase,
-    get_threatened_squares, count_pieces, count_threatened_pieces,
+    get_threatened_squares, count_threatened_pieces,
     clear_transposition_table, get_tt_stats, DRAUGHTS_AVAILABLE, MAX_DEPTH
 )
 
