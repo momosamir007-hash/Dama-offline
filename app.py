@@ -12,7 +12,8 @@ except ImportError:
     WHITE, BLACK = 2, 1
 
 from engine import (
-    find_best_move, evaluate_position, parse_fen_pieces, DRAUGHTS_AVAILABLE,
+    find_best_move, evaluate_position, parse_fen_pieces, 
+    DRAUGHTS_AVAILABLE, get_legal_moves
 )
 
 st.set_page_config(
@@ -53,31 +54,25 @@ def is_game_over(board):
             return True
     except Exception:
         pass
-    return len(list(board.legal_moves)) == 0
+    return len(get_legal_moves(board)) == 0
 
 def get_winner(board, player_color, ai_color):
     if not is_game_over(board): return None
-    
     w_men, w_kings, b_men, b_kings = count_pieces(board)
     w_total = w_men + w_kings
     b_total = b_men + b_kings
-    
     if w_total == 0 and b_total == 0: return 'draw'
-    
     if player_color == WHITE:
         if b_total == 0: return 'player'
         elif w_total == 0: return 'ai'
         else:
             if w_total == 0: return 'player'
             elif b_total == 0: return 'ai'
-    if board.turn == ai_color:
-        return 'player'
-    else:
-        return 'ai'
+    if board.turn == ai_color: return 'player'
+    else: return 'ai'
 
 def render_board_svg(board, last_move_str=""):
-    """ ينشئ صورة SVG للرقعة الكلاسيكية 8x8 بالقطع """
-    CELL = 60 # تكبير حجم المربع قليلاً للرقعة الأصغر
+    CELL = 60 
     BOARD_SIZE = CELL * 8
     MARGIN = 24
     TOTAL = BOARD_SIZE + MARGIN * 2
@@ -97,12 +92,9 @@ def render_board_svg(board, last_move_str=""):
 
     fen = get_board_fen(board)
     white_pieces, black_pieces = parse_fen_pieces(fen)
-    
     piece_map = {}
-    for sq, is_king in white_pieces:
-        piece_map[sq] = ('white', is_king)
-    for sq, is_king in black_pieces:
-        piece_map[sq] = ('black', is_king)
+    for sq, is_king in white_pieces: piece_map[sq] = ('white', is_king)
+    for sq, is_king in black_pieces: piece_map[sq] = ('black', is_king)
 
     highlight_squares = set()
     if last_move_str:
@@ -111,23 +103,12 @@ def render_board_svg(board, last_move_str=""):
             try: highlight_squares.add(int(n))
             except ValueError: pass
 
-    svg_parts = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {TOTAL} {TOTAL}" width="100%" style="max-width:{TOTAL}px;display:block;margin:0 auto;">'
-    ]
+    svg_parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {TOTAL} {TOTAL}" width="100%" style="max-width:{TOTAL}px;display:block;margin:0 auto;">']
     svg_parts.append("""<defs>
-        <filter id="ps" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.5"/>
-        </filter>
-        <radialGradient id="wg" cx="40%" cy="35%" r="55%">
-            <stop offset="0%" stop-color="#FFFFFF"/>
-            <stop offset="100%" stop-color="#E8D5B0"/>
-        </radialGradient>
-        <radialGradient id="bg" cx="40%" cy="35%" r="55%">
-            <stop offset="0%" stop-color="#555555"/>
-            <stop offset="100%" stop-color="#1A1A1A"/>
-        </radialGradient>
+        <filter id="ps" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.5"/></filter>
+        <radialGradient id="wg" cx="40%" cy="35%" r="55%"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#E8D5B0"/></radialGradient>
+        <radialGradient id="bg" cx="40%" cy="35%" r="55%"><stop offset="0%" stop-color="#555555"/><stop offset="100%" stop-color="#1A1A1A"/></radialGradient>
     </defs>""")
-
     svg_parts.append(f'<rect x="0" y="0" width="{TOTAL}" height="{TOTAL}" rx="6" fill="{FRAME_COLOR}"/>')
 
     for i in range(8):
@@ -143,14 +124,12 @@ def render_board_svg(board, last_move_str=""):
             y = MARGIN + r * CELL
             is_dark = (r + c) % 2 == 1
             fill = DARK_SQ if is_dark else LIGHT_SQ
-            
             svg_parts.append(f'<rect x="{x}" y="{y}" width="{CELL}" height="{CELL}" fill="{fill}"/>')
             
             if is_dark:
                 sq_num += 1
                 if sq_num in highlight_squares:
                     svg_parts.append(f'<rect x="{x}" y="{y}" width="{CELL}" height="{CELL}" fill="rgba(255,255,50,0.3)"/>')
-                
                 svg_parts.append(f'<text x="{x + 4}" y="{y + 14}" font-size="10" fill="{NUM_COLOR}" font-family="monospace">{sq_num}</text>')
                 
                 if sq_num in piece_map:
@@ -160,10 +139,8 @@ def render_board_svg(board, last_move_str=""):
                     grad = "url(#wg)" if color == 'white' else "url(#bg)"
                     stroke = WHITE_STROKE if color == 'white' else BLACK_STROKE
                     inner_s = "#D4B896" if color == 'white' else "#333333"
-                    
                     svg_parts.append(f'<circle cx="{cx_p}" cy="{cy_p}" r="{PIECE_R}" fill="{grad}" stroke="{stroke}" stroke-width="2" filter="url(#ps)"/>')
                     svg_parts.append(f'<circle cx="{cx_p}" cy="{cy_p}" r="{INNER_R}" fill="none" stroke="{inner_s}" stroke-width="1.5" opacity="0.6"/>')
-                    
                     if is_king:
                         crown_c = CROWN_W if color == 'white' else CROWN_B
                         svg_parts.append(f'<text x="{cx_p}" y="{cy_p + 7}" text-anchor="middle" font-size="20" fill="{crown_c}" font-weight="bold">♛</text>')
@@ -173,7 +150,6 @@ def render_board_svg(board, last_move_str=""):
     return '\n'.join(svg_parts)
 
 def init_game(player_color, ai_color, depth):
-    # تحديد المتغير 'english' لتهيئة رقعة 8x8 بـ 12 قطعة
     board = Board(variant="english") 
     st.session_state.board = board
     st.session_state.player_color = player_color
@@ -194,7 +170,7 @@ def init_game(player_color, ai_color, depth):
 def play_human_move():
     if st.session_state.game_over: return
     board = st.session_state.board
-    legal_moves = list(board.legal_moves)
+    legal_moves = get_legal_moves(board)
     idx = st.session_state.get("move_select", 0)
     if 0 <= idx < len(legal_moves):
         move = legal_moves[idx]
@@ -202,7 +178,6 @@ def play_human_move():
         board.push(move)
         st.session_state.move_history.append(("👤", move_str))
         st.session_state.last_move = str(move)
-        
         if is_game_over(board):
             st.session_state.game_over = True
             st.session_state.winner = get_winner(board, st.session_state.player_color, st.session_state.ai_color)
@@ -221,7 +196,6 @@ def play_ai_move():
         st.session_state.move_history.append(("🤖", move_str))
         st.session_state.last_move = str(best_move)
         st.session_state.ai_info = f"العمق: {reached} | التقييم: {score:+.1f}"
-        
         if is_game_over(board):
             st.session_state.game_over = True
             st.session_state.winner = get_winner(board, st.session_state.player_color, ai_color)
@@ -235,13 +209,11 @@ def undo_move():
     history = st.session_state.move_history
     moves_to_undo = min(2, len(history))
     if moves_to_undo == 0: return
-    
     for _ in range(moves_to_undo):
         try:
             board.pop()
             history.pop()
         except Exception: break
-        
     st.session_state.game_over = False
     st.session_state.winner = None
     st.session_state.last_move = ""
@@ -284,7 +256,7 @@ def main():
         color_choice = st.radio("🎨 اختر لونك:", ["⬜ أبيض (تبدأ أنت)", "⬛ أسود (يبدأ الكمبيوتر)"], index=0)
         difficulty = st.select_slider("🎯 مستوى الصعوبة:", options=["سهل", "متوسط", "صعب", "خبير"], value="متوسط")
         
-        depth_map = {"سهل": 3, "متوسط": 5, "صعب": 7, "خبير": 9} # زدت العمق لأن رقعة 8x8 أسرع حسابياً
+        depth_map = {"سهل": 3, "متوسط": 5, "صعب": 7, "خبير": 9}
         depth = depth_map[difficulty]
         
         st.markdown("---")
@@ -378,7 +350,7 @@ def main():
     st.markdown(f'<div class="board-container">{svg}</div>', unsafe_allow_html=True)
 
     if not st.session_state.game_over and board.turn == player_color:
-        legal_moves = list(board.legal_moves)
+        legal_moves = get_legal_moves(board)
         if legal_moves:
             st.markdown("---")
             move_labels = [format_move(m) for m in legal_moves]
