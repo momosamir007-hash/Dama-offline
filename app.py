@@ -98,7 +98,6 @@ def render_board_svg(board, last_move_str="", hint_move_str=""):
 
     svg_parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {TOTAL} {TOTAL}" width="100%" style="max-width:{TOTAL}px;display:block;margin:0 auto;">']
     
-    # إضافة تعريفات الأسهم (البرتقالي للحركة الأخيرة والأخضر للمساعدة)
     svg_parts.append("""<defs>
         <filter id="ps" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.5"/></filter>
         <radialGradient id="wg" cx="40%" cy="35%" r="55%"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#E8D5B0"/></radialGradient>
@@ -119,7 +118,7 @@ def render_board_svg(board, last_move_str="", hint_move_str=""):
         svg_parts.append(f'<text x="{MARGIN - 10}" y="{cy}" text-anchor="middle" font-size="12" fill="#D4A76A" font-family="monospace">{8 - i}</text>')
 
     sq_num = 0
-    sq_coords = {} # لحفظ إحداثيات كل مربع لرسم الأسهم لاحقاً
+    sq_coords = {}
 
     for r in range(8):
         for c in range(8):
@@ -133,7 +132,7 @@ def render_board_svg(board, last_move_str="", hint_move_str=""):
                 sq_num += 1
                 cx_p = x + CELL // 2
                 cy_p = y + CELL // 2
-                sq_coords[sq_num] = (cx_p, cy_p) # حفظ المركز
+                sq_coords[sq_num] = (cx_p, cy_p)
 
                 if sq_num in highlight_squares:
                     svg_parts.append(f'<rect x="{x}" y="{y}" width="{CELL}" height="{CELL}" fill="rgba(255,255,50,0.3)"/>')
@@ -152,7 +151,6 @@ def render_board_svg(board, last_move_str="", hint_move_str=""):
 
     svg_parts.append(f'<rect x="{MARGIN}" y="{MARGIN}" width="{BOARD_SIZE}" height="{BOARD_SIZE}" fill="none" stroke="{FRAME_COLOR}" stroke-width="2"/>')
 
-    # رسم سهم الحركة الأخيرة
     if last_move_str:
         nums = [int(n) for n in re.findall(r'\d+', last_move_str)]
         if len(nums) >= 2:
@@ -160,7 +158,6 @@ def render_board_svg(board, last_move_str="", hint_move_str=""):
             if len(pts) >= 2:
                 svg_parts.append(f'<polyline points="{" ".join(pts)}" fill="none" stroke="#FF4500" stroke-width="5" marker-end="url(#arrow)" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>')
 
-    # رسم سهم المساعدة (تلميح)
     if hint_move_str:
         nums = [int(n) for n in re.findall(r'\d+', hint_move_str)]
         if len(nums) >= 2:
@@ -181,7 +178,7 @@ def init_game(player_color, ai_color, depth):
     st.session_state.game_over = False
     st.session_state.winner = None
     st.session_state.last_move = ""
-    st.session_state.hint_move = "" # إضافة متغير المساعدة
+    st.session_state.hint_move = "" 
     st.session_state.ai_info = ""
     st.session_state.game_started = True
     st.session_state.pending_ai = False
@@ -201,7 +198,7 @@ def play_human_move():
         board.push(move)
         st.session_state.move_history.append(("👤", move_str))
         st.session_state.last_move = str(move)
-        st.session_state.hint_move = "" # مسح التلميح بعد اللعب
+        st.session_state.hint_move = "" 
         if is_game_over(board):
             st.session_state.game_over = True
             st.session_state.winner = get_winner(board, st.session_state.player_color, st.session_state.ai_color)
@@ -219,7 +216,7 @@ def play_ai_move():
         board.push(best_move)
         st.session_state.move_history.append(("🤖", move_str))
         st.session_state.last_move = str(best_move)
-        st.session_state.hint_move = "" # مسح أي تلميح قديم
+        st.session_state.hint_move = "" 
         st.session_state.ai_info = f"العمق: {reached} | التقييم: {score:+.1f}"
         if is_game_over(board):
             st.session_state.game_over = True
@@ -375,7 +372,6 @@ def main():
         else:
             st.markdown('<div class="status-box status-ai">🤖 دور الكمبيوتر</div>', unsafe_allow_html=True)
 
-    # إرسال الحركة الأخيرة وحركة المساعدة (إن وجدت) لدالة الرسم
     svg = render_board_svg(board, st.session_state.get("last_move", ""), st.session_state.get("hint_move", ""))
     st.markdown(f'<div class="board-container">{svg}</div>', unsafe_allow_html=True)
 
@@ -385,7 +381,6 @@ def main():
             st.markdown("---")
             move_labels = [format_move(m) for m in legal_moves]
             
-            # قسمنا المساحة لثلاثة أعمدة لاحتواء القائمة وزرين
             col_sel, col_btn, col_hint = st.columns([2, 1, 1])
             with col_sel:
                 st.selectbox("🎯 اختر حركتك:", range(len(move_labels)), format_func=lambda i: f"[{i}] {move_labels[i]}", key="move_select")
@@ -398,7 +393,6 @@ def main():
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.button("💡 مساعدة", use_container_width=True):
                     with st.spinner("جاري تحليل الرقعة..."):
-                        # نستدعي المحرك للبحث عن أفضل حركة للاعب (بعمق 4 ليكون سريعاً كفاية)
                         hint_mv, _, _ = find_best_move(board, player_color, max_depth=4, time_limit=2.0)
                         if hint_mv:
                             st.session_state.hint_move = str(hint_mv)
