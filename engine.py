@@ -24,6 +24,10 @@ INNER_CENTER = {14, 15, 18, 19}
 WHITE_BACK_ROW = {29, 30, 31, 32}
 BLACK_BACK_ROW = {1, 2, 3, 4}
 
+class SearchTimeout(Exception):
+    """استثناء لإيقاف البحث فوراً عند تجاوز الوقت المحدد"""
+    pass
+
 def get_legal_moves(board):
     if callable(board.legal_moves):
         return list(board.legal_moves())
@@ -96,9 +100,11 @@ def _score_side(pieces, is_white):
     return score
 
 def minimax(board, depth, alpha, beta, maximizing, ai_color, deadline=None):
-    legal_moves = get_legal_moves(board)
+    # إيقاف فوري يمنع تجمد الواجهة
     if deadline and time.time() > deadline:
-        return evaluate_position(board, ai_color), None
+        raise SearchTimeout()
+
+    legal_moves = get_legal_moves(board)
     if depth == 0 or not legal_moves:
         return evaluate_position(board, ai_color), None
 
@@ -129,45 +135,44 @@ def minimax(board, depth, alpha, beta, maximizing, ai_color, deadline=None):
         return min_eval, best_move
 
 def get_clean_move(original_board, target_move):
-    """يستخرج حركة نظيفة وغير مستهلكة من الرقعة الأصلية"""
     legal_moves = get_legal_moves(original_board)
     if not legal_moves: return None
+    target_str = str(target_move)
+    for m in legal_moves:
+        if str(m) == target_str:
+            return m
     for m in legal_moves:
         try:
-            if hasattr(m, 'pdn_move') and hasattr(target_move, 'pdn_move') and m.pdn_move == target_move.pdn_move:
-                return m
-            if hasattr(m, 'steps_move') and hasattr(target_move, 'steps_move') and m.steps_move == target_move.steps_move:
-                return m
+            if hasattr(m, 'pdn_move') and hasattr(target_move, 'pdn_move') and m.pdn_move == target_move.pdn_move: return m
         except Exception: pass
     return legal_moves[0]
 
-def find_best_move(original_board, ai_color, max_depth=5, time_limit=25.0):
+def find_best_move(original_board, ai_color, max_depth=5, time_limit=4.0):
     original_moves = get_legal_moves(original_board)
     if not original_moves: return None, 0, 0
     if len(original_moves) == 1: return original_moves[0], 0, 1
     
-    # استخدام نسخة مطابقة للبحث لحماية الرقعة الأصلية من التلف أثناء التجربة
     search_board = original_board.copy()
-    legal_moves = get_legal_moves(search_board)
-    
     start_time = time.time()
     deadline = start_time + time_limit
-    best_move = legal_moves[0]
+    
+    best_move = original_moves[0]
     best_score = 0
     reached_depth = 0
     
     for depth in range(1, max_depth + 1):
-        if time.time() > deadline: break
         try:
             score, move = minimax(search_board, depth, -math.inf, math.inf, True, ai_color, deadline)
             if move is not None:
                 best_move = move
                 best_score = score
                 reached_depth = depth
-        except Exception: break
+        except SearchTimeout:
+            break # إيقاف بأمان بسبب انتهاء الوقت
+        except Exception: 
+            break
+            
         if abs(best_score) > 90000: break
             
-    # مطابقة أفضل حركة بنسخة نظيفة مأخوذة من الرقعة الأصلية
     clean_move = get_clean_move(original_board, best_move)
     return clean_move, best_score, reached_depth
-    return best_move, best_score, reached_depth
