@@ -1,6 +1,6 @@
 """ محرك الذكاء الاصطناعي المتقدم للعبة الداما
 =============================================
-النسخة المُصححة - جميع الأخطاء الحرجة والمتوسطة والبسيطة تم إصلاحها
+النسخة المُصححة والنهائية - تم إصلاح فخ الاستقرار، فساد الـ TT، ونافذة الطموح
 """
 
 import math
@@ -964,36 +964,42 @@ def _order_moves(moves: list, depth: int, prev_ms: str = "", is_q: bool = False)
 
 
 # ════════════════════════════════════════════
-# Quiescence Search - مُصحح (Minimax style)
+# Quiescence Search - مُصحح (حركات الأكل الإجبارية)
 # ════════════════════════════════════════════
 def quiescence(board, alpha: float, beta: float, ai_color, maximizing: bool, deadline=None, qdepth: int = 0) -> float:
     """
     بحث الاستقرار (Quiescence Search).
-    مُصحح ليعمل بأسلوب Minimax بدلاً من Negamax لمنع تعارض التقييم.
+    تم إصلاحه بحيث لا يتجاهل الفخاخ وحركات الأكل الإجبارية.
     """
     if deadline and time.time() > deadline:
         raise SearchTimeout()
 
-    stand_pat = evaluate_position(board, ai_color)
     if qdepth >= 10:
-        return stand_pat
+        return evaluate_position(board, ai_color)
 
     legal = get_legal_moves(board)
     captures = [m for m in legal if _is_capture(m)]
 
-    if maximizing:
-        if stand_pat >= beta:
-            return beta
-        DELTA = PIECE_VALUE * 2
-        if stand_pat + DELTA < alpha:
-            return alpha
-        if stand_pat > alpha:
-            alpha = stand_pat
-        if not captures:
-            return stand_pat
+    # إذا لم تكن هناك حركات أكل، يمكننا الاعتماد على التقييم اللحظي والوقوف (Stand Pat)
+    if not captures:
+        stand_pat = evaluate_position(board, ai_color)
+        if maximizing:
+            if stand_pat >= beta:
+                return beta
+            if stand_pat > alpha:
+                alpha = stand_pat
+        else:
+            if stand_pat <= alpha:
+                return alpha
+            if stand_pat < beta:
+                beta = stand_pat
+        return stand_pat
 
-        captures = _order_moves(captures, 0, is_q=True)
-        fen = get_board_fen(board)
+    # إذا كانت هناك حركات أكل، يجب استكشافها إجبارياً (قاعدة الداما)
+    captures = _order_moves(captures, 0, is_q=True)
+    fen = get_board_fen(board)
+
+    if maximizing:
         for move in captures:
             try:
                 sim = Board(variant="english", fen=fen)
@@ -1015,18 +1021,6 @@ def quiescence(board, alpha: float, beta: float, ai_color, maximizing: bool, dea
                 continue
         return alpha
     else:
-        if stand_pat <= alpha:
-            return alpha
-        DELTA = PIECE_VALUE * 2
-        if stand_pat - DELTA > beta:
-            return beta
-        if stand_pat < beta:
-            beta = stand_pat
-        if not captures:
-            return stand_pat
-
-        captures = _order_moves(captures, 0, is_q=True)
-        fen = get_board_fen(board)
         for move in captures:
             try:
                 sim = Board(variant="english", fen=fen)
@@ -1055,7 +1049,7 @@ def quiescence(board, alpha: float, beta: float, ai_color, maximizing: bool, dea
 def minimax(board, depth: int, alpha: float, beta: float, maximizing: bool, ai_color, deadline=None, ply: int = 0, prev_ms: str = "") -> float:
     """
     بحث Minimax مع Alpha-Beta Pruning.
-    مُصحح ليمرر maximizing إلى quiescence.
+    تم إصلاح استخدام flags جدول التحويلات بشكل صحيح لعدم إفساد الذاكرة.
     """
     if deadline and time.time() > deadline:
         raise SearchTimeout()
@@ -1078,7 +1072,7 @@ def minimax(board, depth: int, alpha: float, beta: float, maximizing: bool, ai_c
         _tt.store(pos_hash, 0, s, TranspositionTable.EXACT)
         return s
 
-    # Null Move Pruning
+    # Reverse Futility Pruning
     all_cap = all(_is_capture(m) for m in legal)
     if (maximizing and depth >= 4 and not all_cap and len(wp) >= 4 and len(bp) >= 4):
         null_score = evaluate_position(board, ai_color)
@@ -1094,9 +1088,11 @@ def minimax(board, depth: int, alpha: float, beta: float, maximizing: bool, ai_c
                 break
 
     orig_alpha = alpha
+    orig_beta = beta  # حفظ قيمة بيتا الأصلية لاحتساب نوع الـ Flag الصحيح لاحقاً
     best_score = -INF if maximizing else INF
     best_move_str = ""
     tried = 0
+    
     for move in ordered:
         ms = format_move_to_string(move)
         try:
@@ -1153,12 +1149,14 @@ def minimax(board, depth: int, alpha: float, beta: float, maximizing: bool, ai_c
                     _order.set_counter(prev_ms, ms)
             break
 
+    # تحديد وتخزين Flag الصحيح استناداً إلى الحدود الأصلية
     if best_score <= orig_alpha:
         flag = TranspositionTable.UPPER
-    elif best_score >= beta:
+    elif best_score >= orig_beta:
         flag = TranspositionTable.LOWER
     else:
         flag = TranspositionTable.EXACT
+        
     _tt.store(pos_hash, depth, best_score, flag, best_move_str)
     return best_score
 
@@ -1169,6 +1167,7 @@ def minimax(board, depth: int, alpha: float, beta: float, maximizing: bool, ai_c
 def find_best_move(original_board, ai_color, max_depth: int = MAX_DEPTH, time_limit: float = 5.0):
     """
     Iterative Deepening + Aspiration Windows.
+    تم إصلاح نافذة الطموح لضمان عدم ضياع التقييم.
     Returns: (best_move, best_score, reached_depth)
     """
     legal = get_legal_moves(original_board)
@@ -1238,7 +1237,8 @@ def find_best_move(original_board, ai_color, max_depth: int = MAX_DEPTH, time_li
                     failed = True
                     break
 
-            if failed and d_best is None:
+            # تم تصحيح الشرط هنا لضمان إعادة البحث بنجاح حال الفشل
+            if failed:
                 d_score = -INF
                 alpha = -INF
                 beta = INF
