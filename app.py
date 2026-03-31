@@ -1,6 +1,7 @@
 """
 لعبة الداما الكلاسيكية (8x8 - 12 قطعة) بواجهة رسومية - Streamlit
 """
+import re
 import streamlit as st
 
 try:
@@ -23,14 +24,12 @@ st.set_page_config(
 )
 
 def format_move(move):
-    """تهيئة الحركة لتظهر بشكل رياضي احترافي"""
     try:
         if hasattr(move, 'pdn_move') and move.pdn_move:
             return str(move.pdn_move)
         if hasattr(move, 'steps_move') and move.steps_move:
             return " → ".join(map(str, move.steps_move))
-    except Exception:
-        pass
+    except Exception: pass
     return "حركة"
 
 def get_board_fen(board):
@@ -52,8 +51,7 @@ def is_game_over(board):
     try:
         if hasattr(board, 'is_over') and board.is_over():
             return True
-    except Exception:
-        pass
+    except Exception: pass
     return len(get_legal_moves(board)) == 0
 
 def get_winner(board, player_color, ai_color):
@@ -71,7 +69,6 @@ def get_winner(board, player_color, ai_color):
     if board.turn == ai_color: return 'player'
     else: return 'ai'
 
-import re
 def render_board_svg(board, last_move_str=""):
     CELL = 60 
     BOARD_SIZE = CELL * 8
@@ -189,7 +186,8 @@ def play_ai_move():
     board = st.session_state.board
     ai_color = st.session_state.ai_color
     depth = st.session_state.depth
-    best_move, score, reached = find_best_move(board, ai_color, max_depth=depth, time_limit=25.0)
+    # تم تقليل الوقت لـ 4 ثوانٍ ليكون متجاوباً بشكل مثالي على المتصفح
+    best_move, score, reached = find_best_move(board, ai_color, max_depth=depth, time_limit=4.0)
     
     if best_move:
         move_str = format_move(best_move)
@@ -200,6 +198,8 @@ def play_ai_move():
         if is_game_over(board):
             st.session_state.game_over = True
             st.session_state.winner = get_winner(board, st.session_state.player_color, ai_color)
+        else:
+            st.session_state.pending_ai = False # إيقاف تعليق الدور
     else:
         st.session_state.game_over = True
         st.session_state.winner = 'player'
@@ -257,7 +257,8 @@ def main():
         color_choice = st.radio("🎨 اختر لونك:", ["⬜ أبيض (تبدأ أنت)", "⬛ أسود (يبدأ الكمبيوتر)"], index=0)
         difficulty = st.select_slider("🎯 مستوى الصعوبة:", options=["سهل", "متوسط", "صعب", "خبير"], value="متوسط")
         
-        depth_map = {"سهل": 3, "متوسط": 5, "صعب": 7, "خبير": 9}
+        # تم ضبط العمق ليتناسب مع سرعة لغة بايثون
+        depth_map = {"سهل": 2, "متوسط": 4, "صعب": 6, "خبير": 7}
         depth = depth_map[difficulty]
         
         st.markdown("---")
@@ -322,13 +323,16 @@ def main():
         st.markdown(f'<div class="board-container">{svg}</div>', unsafe_allow_html=True)
         st.stop()
 
-    board = st.session_state.board
-    player_color = st.session_state.player_color
-    ai_color = st.session_state.ai_color
-
+    # ─── تنفيذ حركة الكمبيوتر إذا كانت معلقة ───
     if st.session_state.pending_ai and not st.session_state.game_over:
         with st.spinner("🤖 الكمبيوتر يفكر..."):
             play_ai_move()
+        # إجبار الواجهة على التحديث لنقل الدور فوراً لك
+        st.rerun()
+
+    board = st.session_state.board
+    player_color = st.session_state.player_color
+    ai_color = st.session_state.ai_color
 
     if st.session_state.game_over:
         winner = st.session_state.winner
