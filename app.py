@@ -1,6 +1,6 @@
 """
 لعبة الداما الكلاسيكية (8x8 - 12 قطعة) بواجهة رسومية - Streamlit
-مع أسهم بصرية للحركات وزر للمساعدة
+مع أسهم بصرية دقيقة للحركات وزر للمساعدة
 """
 import re
 import streamlit as st
@@ -17,6 +17,9 @@ from engine import (
     DRAUGHTS_AVAILABLE, get_legal_moves, get_board_fen
 )
 
+# ════════════════════════════════════════════
+# إعدادات الصفحة
+# ════════════════════════════════════════════
 st.set_page_config(
     page_title="لعبة الداما | Checkers AI",
     page_icon="🎮",
@@ -24,7 +27,11 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# ════════════════════════════════════════════
+# دوال مساعدة
+# ════════════════════════════════════════════
 def format_move(move):
+    """تنسيق الحركة لاستخراج الأرقام فقط مثل 11-15 أو 11x18"""
     try:
         if hasattr(move, 'pdn_move') and move.pdn_move:
             return str(move.pdn_move)
@@ -64,6 +71,9 @@ def get_winner(board, player_color, ai_color):
     if board.turn == ai_color: return 'player'
     else: return 'ai'
 
+# ════════════════════════════════════════════
+# رسم الرقعة بـ SVG
+# ════════════════════════════════════════════
 def render_board_svg(board, last_move_str="", hint_move_str=""):
     CELL = 60 
     BOARD_SIZE = CELL * 8
@@ -98,6 +108,7 @@ def render_board_svg(board, last_move_str="", hint_move_str=""):
 
     svg_parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {TOTAL} {TOTAL}" width="100%" style="max-width:{TOTAL}px;display:block;margin:0 auto;">']
     
+    # إضافة تعريفات الأسهم والظلال
     svg_parts.append("""<defs>
         <filter id="ps" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.5"/></filter>
         <radialGradient id="wg" cx="40%" cy="35%" r="55%"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#E8D5B0"/></radialGradient>
@@ -111,6 +122,7 @@ def render_board_svg(board, last_move_str="", hint_move_str=""):
     </defs>""")
     svg_parts.append(f'<rect x="0" y="0" width="{TOTAL}" height="{TOTAL}" rx="6" fill="{FRAME_COLOR}"/>')
 
+    # أرقام الأعمدة والصفوف
     for i in range(8):
         cx = MARGIN + i * CELL + CELL // 2
         svg_parts.append(f'<text x="{cx}" y="{MARGIN - 7}" text-anchor="middle" font-size="12" fill="#D4A76A" font-family="monospace">{chr(65 + i)}</text>')
@@ -120,6 +132,7 @@ def render_board_svg(board, last_move_str="", hint_move_str=""):
     sq_num = 0
     sq_coords = {}
 
+    # رسم المربعات والقطع
     for r in range(8):
         for c in range(8):
             x = MARGIN + c * CELL
@@ -132,7 +145,7 @@ def render_board_svg(board, last_move_str="", hint_move_str=""):
                 sq_num += 1
                 cx_p = x + CELL // 2
                 cy_p = y + CELL // 2
-                sq_coords[sq_num] = (cx_p, cy_p)
+                sq_coords[sq_num] = (cx_p, cy_p) # حفظ الإحداثيات لرسم الأسهم بدقة
 
                 if sq_num in highlight_squares:
                     svg_parts.append(f'<rect x="{x}" y="{y}" width="{CELL}" height="{CELL}" fill="rgba(255,255,50,0.3)"/>')
@@ -151,6 +164,7 @@ def render_board_svg(board, last_move_str="", hint_move_str=""):
 
     svg_parts.append(f'<rect x="{MARGIN}" y="{MARGIN}" width="{BOARD_SIZE}" height="{BOARD_SIZE}" fill="none" stroke="{FRAME_COLOR}" stroke-width="2"/>')
 
+    # رسم سهم الحركة الأخيرة (البرتقالي)
     if last_move_str:
         nums = [int(n) for n in re.findall(r'\d+', last_move_str)]
         if len(nums) >= 2:
@@ -158,6 +172,7 @@ def render_board_svg(board, last_move_str="", hint_move_str=""):
             if len(pts) >= 2:
                 svg_parts.append(f'<polyline points="{" ".join(pts)}" fill="none" stroke="#FF4500" stroke-width="5" marker-end="url(#arrow)" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>')
 
+    # رسم سهم المساعدة (الأخضر المتقطع)
     if hint_move_str:
         nums = [int(n) for n in re.findall(r'\d+', hint_move_str)]
         if len(nums) >= 2:
@@ -168,6 +183,9 @@ def render_board_svg(board, last_move_str="", hint_move_str=""):
     svg_parts.append('</svg>')
     return '\n'.join(svg_parts)
 
+# ════════════════════════════════════════════
+# إدارة حالة اللعبة
+# ════════════════════════════════════════════
 def init_game(player_color, ai_color, depth):
     board = Board(variant="english") 
     st.session_state.board = board
@@ -194,11 +212,12 @@ def play_human_move():
     idx = st.session_state.get("move_select", 0)
     if 0 <= idx < len(legal_moves):
         move = legal_moves[idx]
-        move_str = format_move(move)
+        move_str = format_move(move) # نص منسق نظيف
         board.push(move)
         st.session_state.move_history.append(("👤", move_str))
-        st.session_state.last_move = str(move)
-        st.session_state.hint_move = "" 
+        st.session_state.last_move = move_str # استخدام النص المنسق لرسم السهم بشكل صحيح
+        st.session_state.hint_move = "" # مسح التلميح بعد اللعب
+        
         if is_game_over(board):
             st.session_state.game_over = True
             st.session_state.winner = get_winner(board, st.session_state.player_color, st.session_state.ai_color)
@@ -212,12 +231,13 @@ def play_ai_move():
     best_move, score, reached = find_best_move(board, ai_color, max_depth=depth, time_limit=3.5)
     
     if best_move:
-        move_str = format_move(best_move)
+        move_str = format_move(best_move) # نص منسق نظيف
         board.push(best_move)
         st.session_state.move_history.append(("🤖", move_str))
-        st.session_state.last_move = str(best_move)
+        st.session_state.last_move = move_str # استخدام النص المنسق لرسم السهم بشكل صحيح
         st.session_state.hint_move = "" 
         st.session_state.ai_info = f"العمق: {reached} | التقييم: {score:+.1f}"
+        
         if is_game_over(board):
             st.session_state.game_over = True
             st.session_state.winner = get_winner(board, st.session_state.player_color, ai_color)
@@ -266,6 +286,9 @@ def inject_css():
     </style>
     """, unsafe_allow_html=True)
 
+# ════════════════════════════════════════════
+# الواجهة الرئيسية
+# ════════════════════════════════════════════
 def main():
     inject_css()
     if not DRAUGHTS_OK or not DRAUGHTS_AVAILABLE:
@@ -395,7 +418,7 @@ def main():
                     with st.spinner("جاري تحليل الرقعة..."):
                         hint_mv, _, _ = find_best_move(board, player_color, max_depth=4, time_limit=2.0)
                         if hint_mv:
-                            st.session_state.hint_move = str(hint_mv)
+                            st.session_state.hint_move = format_move(hint_mv) # استخدام التنسيق الصحيح لرسم السهم
                     st.rerun()
 
 if __name__ == "__main__":
