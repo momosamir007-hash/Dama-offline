@@ -1,41 +1,28 @@
-""" لعبة الداما الكلاسيكية - واجهة Streamlit المتقدمة الكاملة النسخة المُصححة - جميع الأخطاء تم إصلاحها """
+""" لعبة الداما الكلاسيكية - واجهة Streamlit المتقدمة
+=============================================
+النسخة المُصححة والنهائية - تم إصلاح دالة التراجع، التلميحات السريعة، وأمان التزامن
+"""
+
 import re
 import time
 import streamlit as st
 
-try:
+# استيراد آمن وتوافق مع وجود أو غياب مكتبة pydraughts
+from engine import (
+    get_legal_moves, get_board_fen, format_move_to_string, parse_fen_pieces,
+    evaluate_position, find_best_move, analyze_position, _is_capture,
+    _is_promotion, _capture_count, _phase_label, _game_phase,
+    get_threatened_squares, count_pieces, count_threatened_pieces,
+    clear_transposition_table, get_tt_stats, DRAUGHTS_AVAILABLE, MAX_DEPTH
+)
+
+if DRAUGHTS_AVAILABLE:
     from draughts import Board, WHITE, BLACK
     DRAUGHTS_OK = True
-except ImportError:
+else:
     DRAUGHTS_OK = False
     WHITE, BLACK = 2, 1
-
-from engine import (
-    get_legal_moves,
-    get_board_fen,
-    format_move_to_string,
-    parse_fen_pieces,
-    evaluate_position,
-    find_best_move,
-    analyze_position,
-    _is_capture,
-    _is_promotion,
-    _capture_count,
-    _phase_label,
-    _game_phase,
-    detect_ui_threats,
-    get_threatened_squares,
-    build_square_sets,
-    is_square_attacked_by_white,
-    is_square_attacked_by_black,
-    count_threatened_pieces,
-    evaluate_safety,
-    detect_forks,
-    clear_transposition_table,
-    get_tt_stats,
-    DRAUGHTS_AVAILABLE,
-    MAX_DEPTH,
-)
+    Board = lambda *args, **kwargs: None
 
 st.set_page_config(
     page_title="داما AI | الداما الذكية",
@@ -477,9 +464,9 @@ def fmt(move) -> str:
     return result if result and result != "?" else "حركة"
 
 
-def count_pieces(board):
+def get_piece_counts(board):
     """
-    حساب عدد القطع لكل جانب.
+    حساب عدد القطع لكل جانب باستخدام FEN.
     يُرجع (w_men, w_kings, b_men, b_kings)
     """
     fen = get_board_fen(board)
@@ -508,7 +495,7 @@ def get_winner(board, player_color, ai_color):
     """
     if not is_game_over(board):
         return None
-    wm, wk, bm, bk = count_pieces(board)
+    wm, wk, bm, bk = get_piece_counts(board)
     wt = wm + wk
     bt = bm + bk
     if wt == 0 and bt == 0:
@@ -849,7 +836,7 @@ def render_index():
                 <span class="index-icon">🔬</span>
                 <span>
                     <div class="index-label">Quiescence Search</div>
-                    <div class="index-desc">استقرار الأكل | عمق 10</div>
+                    <div class="index-desc">استقرار الأكل | تم تصحيح الأكل الإجباري</div>
                 </span>
             </div>
             <div class="index-item">
@@ -884,7 +871,7 @@ def render_index():
                 <span class="index-icon">📜</span>
                 <span>
                     <div class="index-label">سجل الحركات</div>
-                    <div class="index-desc">كامل مع أنواع الحركات</div>
+                    <div class="index-desc">تراجع فوري (Instant Undo)</div>
                 </span>
             </div>
         </div>
@@ -1041,11 +1028,12 @@ def init_game(player_color, ai_color, depth, time_limit):
     clear_transposition_table()
     board = Board(variant="english")
     st.session_state['board'] = board
+    st.session_state['initial_fen'] = get_board_fen(board)
     st.session_state['player_color'] = player_color
     st.session_state['ai_color'] = ai_color
     st.session_state['depth'] = depth
     st.session_state['time_limit'] = time_limit
-    st.session_state['move_history'] = []
+    st.session_state['move_history'] = []  # سيحتوي الآن على FEN أيضاً لتسريع التراجع
     st.session_state['game_over'] = False
     st.session_state['winner'] = None
     st.session_state['last_move'] = ""
@@ -1062,22 +1050,18 @@ def init_game(player_color, ai_color, depth, time_limit):
     st.session_state['threatened_sqs'] = set()
 
 
-def play_human_move():
-    """تنفيذ الحركة المختارة من اللاعب البشري"""
+def play_human_move(chosen_move):
+    """تنفيذ الحركة المختارة من اللاعب البشري (تم تأمين الاستدعاء)"""
     if st.session_state.get('game_over'):
         return
+    
     board = st.session_state['board']
-    legal_moves = get_legal_moves(board)
-    move_index = st.session_state.get("move_select", 0)
-    if not (0 <= move_index < len(legal_moves)):
-        st.warning("⚠️ اختر حركة صحيحة من القائمة")
-        return
-    chosen_move = legal_moves[move_index]
     move_str = fmt(chosen_move)
     is_cap = _is_capture(chosen_move)
     is_prom = _is_promotion(chosen_move)
 
     board.push(chosen_move)
+    current_fen = get_board_fen(board)
 
     if is_cap:
         move_type = "⚔️"
@@ -1086,7 +1070,8 @@ def play_human_move():
     else:
         move_type = "➡️"
 
-    st.session_state['move_history'].append(("👤", move_str, move_type))
+    # إضافة FEN لتسريع عملية التراجع لاحقاً
+    st.session_state['move_history'].append(("👤", move_str, move_type, current_fen))
     st.session_state['last_move'] = move_str
     st.session_state['hint_move'] = ""
     st.session_state['analysis'] = None
@@ -1094,16 +1079,11 @@ def play_human_move():
     st.session_state['move_count'] = st.session_state.get('move_count', 0) + 1
     st.session_state['threatened_sqs'] = set()
 
-    # إصلاح #4: عدّاد الأكل حسب لون اللاعب الفعلي
     if is_cap:
         if st.session_state['player_color'] == WHITE:
-            st.session_state['captures_w'] = (
-                st.session_state.get('captures_w', 0) + 1
-            )
+            st.session_state['captures_w'] = st.session_state.get('captures_w', 0) + 1
         else:
-            st.session_state['captures_b'] = (
-                st.session_state.get('captures_b', 0) + 1
-            )
+            st.session_state['captures_b'] = st.session_state.get('captures_b', 0) + 1
 
     if is_game_over(board):
         st.session_state['game_over'] = True
@@ -1120,14 +1100,18 @@ def play_ai_move():
     ai_color = st.session_state['ai_color']
     depth = st.session_state['depth']
     time_limit = st.session_state.get('time_limit', 5.0)
+    
     best_move, score, reached_depth = find_best_move(
         board, ai_color, max_depth=depth, time_limit=time_limit
     )
+    
     if best_move is not None:
         move_str = fmt(best_move)
         is_cap = _is_capture(best_move)
         is_prom = _is_promotion(best_move)
+        
         board.push(best_move)
+        current_fen = get_board_fen(board)
 
         if is_cap:
             move_type = "⚔️"
@@ -1136,24 +1120,18 @@ def play_ai_move():
         else:
             move_type = "➡️"
 
-        st.session_state['move_history'].append(("🤖", move_str, move_type))
+        # حفظ FEN لتسريع عملية التراجع
+        st.session_state['move_history'].append(("🤖", move_str, move_type, current_fen))
         st.session_state['last_move'] = move_str
         st.session_state['hint_move'] = ""
         st.session_state['analysis'] = None
-        st.session_state['move_count'] = (
-            st.session_state.get('move_count', 0) + 1
-        )
+        st.session_state['move_count'] = st.session_state.get('move_count', 0) + 1
 
-        # إصلاح #4: عدّاد الأكل حسب لون الـ AI الفعلي
         if is_cap:
             if st.session_state['ai_color'] == WHITE:
-                st.session_state['captures_w'] = (
-                    st.session_state.get('captures_w', 0) + 1
-                )
+                st.session_state['captures_w'] = st.session_state.get('captures_w', 0) + 1
             else:
-                st.session_state['captures_b'] = (
-                    st.session_state.get('captures_b', 0) + 1
-                )
+                st.session_state['captures_b'] = st.session_state.get('captures_b', 0) + 1
 
         tt_stats = get_tt_stats()
         st.session_state['ai_info'] = (
@@ -1163,9 +1141,7 @@ def play_ai_move():
             f"إصابة: **{tt_stats['hit_rate']}**"
         )
 
-        # حساب القطع المهددة بعد حركة AI
         try:
-            current_fen = get_board_fen(board)
             wp_now, bp_now = parse_fen_pieces(current_fen)
             player_c = st.session_state['player_color']
             threatened = get_threatened_squares(wp_now, bp_now, player_c)
@@ -1188,42 +1164,29 @@ def play_ai_move():
 
 def undo_move():
     """
-    التراجع عن آخر حركتين (اللاعب + AI).
-    يُعيد بناء الرقعة من الصفر باستخدام السجل المتبقي.
-    إصلاح #6: معالجة حالة فشل إعادة البناء.
+    التراجع عن آخر حركتين (اللاعب + AI) بلمح البصر (Instant Undo).
+    تم تغيير النظام ليستخدم FEN بدلاً من إعادة محاكاة اللعبة من الصفر!
     """
     history = st.session_state.get('move_history', [])
     if not history:
         return
+        
     moves_to_remove = min(2, len(history))
     remaining_history = history[:-moves_to_remove]
 
-    new_board = Board(variant="english")
-    rebuild_failed = False
-    for _, mv_str, _ in remaining_history:
-        legal_in_sim = get_legal_moves(new_board)
-        matched_move = None
-        for lm in legal_in_sim:
-            if fmt(lm) == mv_str or str(lm) == mv_str:
-                matched_move = lm
-                break
-        if matched_move is not None:
-            new_board.push(matched_move)
-        else:
-            rebuild_failed = True
-            break
+    # جلب حالة الرقعة (FEN) من الحركة الأخيرة المتبقية أو من البداية
+    if remaining_history:
+        last_fen = remaining_history[-1][3]
+        last_move_str = remaining_history[-1][1]
+    else:
+        last_fen = st.session_state.get('initial_fen', "")
+        last_move_str = ""
 
-    if rebuild_failed:
-        st.warning("⚠️ فشل التراجع، تم إعادة تعيين اللعبة")
-        init_game(
-            st.session_state['player_color'],
-            st.session_state['ai_color'],
-            st.session_state['depth'],
-            st.session_state.get('time_limit', 5.0)
-        )
-        return
-
-    last_move_str = remaining_history[-1][1] if remaining_history else ""
+    # استعادة الرقعة في جزء من الثانية
+    if last_fen:
+        new_board = Board(variant="english", fen=last_fen)
+    else:
+        new_board = Board(variant="english")
 
     st.session_state['board'] = new_board
     st.session_state['move_history'] = remaining_history
@@ -1244,7 +1207,7 @@ def undo_move():
 def main():
     inject_css()
 
-    # فحص المكتبة
+    # فحص المكتبة بأمان ومنع انهيار البرنامج
     if not DRAUGHTS_OK or not DRAUGHTS_AVAILABLE:
         st.error("❌ مكتبة `pydraughts` غير مثبتة!")
         st.info("قم بتثبيتها بتنفيذ الأمر:")
@@ -1361,7 +1324,7 @@ def main():
                 unsafe_allow_html=True
             )
             board = st.session_state['board']
-            wm, wk, bm, bk = count_pieces(board)
+            wm, wk, bm, bk = get_piece_counts(board)
             wt = wm + wk
             bt = bm + bk
             st.markdown(
@@ -1495,7 +1458,7 @@ def main():
                 <span class="wf-icon">🔬</span>
                 <div>
                     <div class="wf-title">Quiescence Search</div>
-                    <div class="wf-desc"> يتابع الأكل بعمق 10 مستويات لتجنب أفق البحث تماماً </div>
+                    <div class="wf-desc"> يتابع الأكل الإجباري تلقائياً لتجنب السقوط في فخاخ الخصم </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -1593,19 +1556,24 @@ def main():
             legal_moves = get_legal_moves(board)
             if legal_moves:
                 move_labels = []
+                move_mapping = {}
                 for mv in legal_moves:
-                    label = fmt(mv)
+                    base_label = fmt(mv)
+                    display_label = base_label
                     if _is_capture(mv):
-                        label += f" ⚔️×{_capture_count(mv)}"
+                        display_label += f" ⚔️×{_capture_count(mv)}"
                     elif _is_promotion(mv):
-                        label += " 👑"
-                    move_labels.append(label)
-                st.selectbox(
+                        display_label += " 👑"
+                    move_labels.append(display_label)
+                    move_mapping[display_label] = mv
+                
+                # استخدام سلسلة نصية كمفتاح لتجنب مشاكل المزامنة (Index Out Of Bounds)
+                selected_label = st.selectbox(
                     "🎯 اختر حركتك:",
-                    range(len(move_labels)),
-                    format_func=lambda i: f"[{i + 1}] {move_labels[i]}",
-                    key="move_select"
+                    options=move_labels,
+                    key="move_selectbox"
                 )
+                
                 action_c1, action_c2, action_c3 = st.columns(3)
                 with action_c1:
                     if st.button(
@@ -1614,7 +1582,8 @@ def main():
                         type="primary",
                         key="btn_play_move"
                     ):
-                        play_human_move()
+                        chosen_move = move_mapping[selected_label]
+                        play_human_move(chosen_move)
                         st.rerun()
                 with action_c2:
                     history_len_now = len(
@@ -1749,40 +1718,26 @@ def main():
 
             if quick_hint_pressed:
                 with st.spinner("⚡ جاري حساب التلميح السريع..."):
-                    quick_move, _, _ = find_best_move(
-                        board, player_color, max_depth=5, time_limit=2.0
+                    t_analysis_start = time.time()
+                    # استخدام analyze_position مع عمق منخفض للحصول على بيانات ديناميكية دقيقة
+                    quick_analysis = analyze_position(
+                        board, player_color, ai_color,
+                        depth=5, time_limit=2.0
                     )
-                    if quick_move is not None:
-                        quick_str = fmt(quick_move)
-                        st.session_state['hint_move'] = quick_str
-                        quick_cap = _is_capture(quick_move)
-                        quick_prom = _is_promotion(quick_move)
-                        quick_capn = _capture_count(quick_move)
-                        st.session_state['analysis'] = {
-                            "best_move": quick_move,
-                            "best_move_str": quick_str,
-                            "score": 0,
-                            "reached_depth": 5,
-                            "top_moves": [
-                                {
-                                    "move": quick_str,
-                                    "score": 0,
-                                    "label": "تلميح سريع ⚡",
-                                    "is_capture": quick_cap,
-                                    "is_promotion": quick_prom,
-                                    "cap_count": quick_capn,
-                                }
-                            ],
-                            "threats": ["⚡ تحليل سريع بعمق 5"],
-                            "phase": "—",
-                            "advantage": "—",
-                            "recommendation": f"💡 **التلميح السريع: {quick_str}**",
-                            "threatened_mine": 0,
-                            "threatened_opp": 0,
-                            "analysis_time": "< 2ث",
-                        }
-                        st.session_state['show_analysis'] = True
-                        st.rerun()
+                    t_elapsed = time.time() - t_analysis_start
+                    quick_analysis['analysis_time'] = f"{t_elapsed:.1f}ث"
+                    
+                    best_mv_str = quick_analysis.get("best_move_str", "")
+                    if best_mv_str:
+                        st.session_state['hint_move'] = best_mv_str
+                        
+                    # تمييز التحليل السريع
+                    quick_analysis['top_moves'][0]['label'] = "تلميح سريع ⚡"
+                    quick_analysis['threats'].append("⚡ هذا تحليل سريع بعمق 5 مستويات")
+                    
+                    st.session_state['analysis'] = quick_analysis
+                    st.session_state['show_analysis'] = True
+                    st.rerun()
 
             # عرض نتيجة التحليل
             if (st.session_state.get('show_analysis') and st.session_state.get('analysis') is not None):
@@ -1851,11 +1806,9 @@ def main():
             captures_b_final = st.session_state.get('captures_b', 0)
             tt_final = get_tt_stats()
 
-            # إصلاح #5: أيقونات الألوان حسب اللون الفعلي للاعب
             player_icon = "⬜" if st.session_state.get('player_color') == WHITE else "⬛"
             ai_icon = "⬛" if st.session_state.get('player_color') == WHITE else "⬜"
 
-            # تحديد عدد أكلات كل طرف حسب لونه الفعلي
             if st.session_state.get('player_color') == WHITE:
                 player_captures = captures_w_final
                 ai_captures = captures_b_final
