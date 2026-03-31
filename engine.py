@@ -1,6 +1,6 @@
 """
 محرك الذكاء الاصطناعي للعبة الداما الكلاسيكية (8x8 - 12 قطعة)
-يستخدم خوارزمية Minimax مع Alpha-Beta Pruning و Iterative Deepening
+يستخدم خوارزمية Minimax مع بيئة محاكاة معزولة (Sandbox)
 """
 import math
 import time
@@ -25,7 +25,7 @@ WHITE_BACK_ROW = {29, 30, 31, 32}
 BLACK_BACK_ROW = {1, 2, 3, 4}
 
 class SearchTimeout(Exception):
-    """استثناء لإيقاف البحث فوراً عند تجاوز الوقت المحدد"""
+    """استثناء لإيقاف البحث فوراً وتجنب تجمد الواجهة"""
     pass
 
 def get_legal_moves(board):
@@ -33,15 +33,18 @@ def get_legal_moves(board):
         return list(board.legal_moves())
     return list(board.legal_moves)
 
+def get_board_fen(board):
+    fen = board.fen
+    return fen() if callable(fen) else fen
+
 def parse_fen_pieces(fen_str):
     try:
-        if callable(fen_str):
-            fen_str = fen_str()
         parts = fen_str.split(':')
         if len(parts) < 3: return [], []
         white_str = parts[1][1:] if len(parts[1]) > 1 else ""
         black_str = parts[2][1:] if len(parts[2]) > 1 else ""
         white_pieces, black_pieces = [], []
+        
         for p in white_str.split(','):
             p = p.strip()
             if not p: continue
@@ -51,6 +54,7 @@ def parse_fen_pieces(fen_str):
             else:
                 try: white_pieces.append((int(p), False))
                 except ValueError: pass
+                
         for p in black_str.split(','):
             p = p.strip()
             if not p: continue
@@ -60,6 +64,7 @@ def parse_fen_pieces(fen_str):
             else:
                 try: black_pieces.append((int(p), False))
                 except ValueError: pass
+                
         return white_pieces, black_pieces
     except Exception: return [], []
 
@@ -68,7 +73,7 @@ def evaluate_position(board, ai_color):
     if not legal_moves:
         return -100000 if board.turn == ai_color else 100000
 
-    fen = board.fen if isinstance(board.fen, str) else board.fen()
+    fen = get_board_fen(board)
     white_pieces, black_pieces = parse_fen_pieces(fen)
     if not white_pieces and not black_pieces:
         return len(legal_moves) if board.turn == ai_color else -len(legal_moves)
@@ -100,79 +105,81 @@ def _score_side(pieces, is_white):
     return score
 
 def minimax(board, depth, alpha, beta, maximizing, ai_color, deadline=None):
-    # إيقاف فوري يمنع تجمد الواجهة
     if deadline and time.time() > deadline:
         raise SearchTimeout()
 
     legal_moves = get_legal_moves(board)
     if depth == 0 or not legal_moves:
-        return evaluate_position(board, ai_color), None
+        return evaluate_position(board, ai_color)
 
-    best_move = legal_moves[0]
     if maximizing:
         max_eval = -math.inf
         for move in legal_moves:
             board.push(move)
-            score, _ = minimax(board, depth - 1, alpha, beta, False, ai_color, deadline)
+            score = minimax(board, depth - 1, alpha, beta, False, ai_color, deadline)
             board.pop()
-            if score > max_eval:
-                max_eval = score
-                best_move = move
+            max_eval = max(max_eval, score)
             alpha = max(alpha, score)
             if beta <= alpha: break
-        return max_eval, best_move
+        return max_eval
     else:
         min_eval = math.inf
         for move in legal_moves:
             board.push(move)
-            score, _ = minimax(board, depth - 1, alpha, beta, True, ai_color, deadline)
+            score = minimax(board, depth - 1, alpha, beta, True, ai_color, deadline)
             board.pop()
-            if score < min_eval:
-                min_eval = score
-                best_move = move
+            min_eval = min(min_eval, score)
             beta = min(beta, score)
             if beta <= alpha: break
-        return min_eval, best_move
+        return min_eval
 
-def get_clean_move(original_board, target_move):
+def find_best_move(original_board, ai_color, max_depth=5, time_limit=3.5):
     legal_moves = get_legal_moves(original_board)
-    if not legal_moves: return None
-    target_str = str(target_move)
-    for m in legal_moves:
-        if str(m) == target_str:
-            return m
-    for m in legal_moves:
-        try:
-            if hasattr(m, 'pdn_move') and hasattr(target_move, 'pdn_move') and m.pdn_move == target_move.pdn_move: return m
-        except Exception: pass
-    return legal_moves[0]
-
-def find_best_move(original_board, ai_color, max_depth=5, time_limit=4.0):
-    original_moves = get_legal_moves(original_board)
-    if not original_moves: return None, 0, 0
-    if len(original_moves) == 1: return original_moves[0], 0, 1
+    if not legal_moves: return None, 0, 0
+    if len(legal_moves) == 1: return legal_moves[0], 0, 1
     
-    search_board = original_board.copy()
+    best_move = legal_moves[0]
+    best_score = -math.inf
+    reached_depth = 0
+    
     start_time = time.time()
     deadline = start_time + time_limit
     
-    best_move = original_moves[0]
-    best_score = 0
-    reached_depth = 0
-    
     for depth in range(1, max_depth + 1):
         try:
-            score, move = minimax(search_board, depth, -math.inf, math.inf, True, ai_color, deadline)
-            if move is not None:
-                best_move = move
-                best_score = score
-                reached_depth = depth
+            current_best_move = legal_moves[0]
+            max_eval = -math.inf
+            alpha = -math.inf
+            beta = math.inf
+            
+            for move in legal_moves:
+                sim_board = Board(variant="english", fen=get_board_fen(original_board))
+                sim_move = None
+                m_str = str(move)
+                for sm in get_legal_moves(sim_board):
+                    if str(sm) == m_str:
+                        sim_move = sm
+                        break
+                
+                if not sim_move: 
+                    sim_move = get_legal_moves(sim_board)[0]
+                
+                sim_board.push(sim_move)
+                score = minimax(sim_board, depth - 1, alpha, beta, False, ai_color, deadline)
+                
+                if score > max_eval:
+                    max_eval = score
+                    current_best_move = move
+                
+                alpha = max(alpha, score)
+            
+            best_move = current_best_move
+            best_score = max_eval
+            reached_depth = depth
+            
+            if abs(best_score) > 90000: break
+                
         except SearchTimeout:
-            break # إيقاف بأمان بسبب انتهاء الوقت
-        except Exception: 
             break
             
-        if abs(best_score) > 90000: break
-            
-    clean_move = get_clean_move(original_board, best_move)
-    return clean_move, best_score, reached_depth
+    return best_move, best_score, reached_depth
