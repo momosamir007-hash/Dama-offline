@@ -1,5 +1,6 @@
 """
 لعبة الداما الكلاسيكية (8x8 - 12 قطعة) بواجهة رسومية - Streamlit
+مع أسهم بصرية للحركات وزر للمساعدة
 """
 import re
 import streamlit as st
@@ -13,7 +14,7 @@ except ImportError:
 
 from engine import (
     find_best_move, evaluate_position, parse_fen_pieces, 
-    DRAUGHTS_AVAILABLE, get_legal_moves
+    DRAUGHTS_AVAILABLE, get_legal_moves, get_board_fen
 )
 
 st.set_page_config(
@@ -31,12 +32,6 @@ def format_move(move):
             return " → ".join(map(str, move.steps_move))
     except Exception: pass
     return "حركة"
-
-def get_board_fen(board):
-    fen = board.fen
-    if callable(fen):
-        fen = fen()
-    return fen
 
 def count_pieces(board):
     fen = get_board_fen(board)
@@ -69,7 +64,7 @@ def get_winner(board, player_color, ai_color):
     if board.turn == ai_color: return 'player'
     else: return 'ai'
 
-def render_board_svg(board, last_move_str=""):
+def render_board_svg(board, last_move_str="", hint_move_str=""):
     CELL = 60 
     BOARD_SIZE = CELL * 8
     MARGIN = 24
@@ -102,10 +97,18 @@ def render_board_svg(board, last_move_str=""):
             except ValueError: pass
 
     svg_parts = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {TOTAL} {TOTAL}" width="100%" style="max-width:{TOTAL}px;display:block;margin:0 auto;">']
+    
+    # إضافة تعريفات الأسهم (البرتقالي للحركة الأخيرة والأخضر للمساعدة)
     svg_parts.append("""<defs>
         <filter id="ps" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity="0.5"/></filter>
         <radialGradient id="wg" cx="40%" cy="35%" r="55%"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#E8D5B0"/></radialGradient>
         <radialGradient id="bg" cx="40%" cy="35%" r="55%"><stop offset="0%" stop-color="#555555"/><stop offset="100%" stop-color="#1A1A1A"/></radialGradient>
+        <marker id="arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#FF4500" />
+        </marker>
+        <marker id="hint-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#00FF00" />
+        </marker>
     </defs>""")
     svg_parts.append(f'<rect x="0" y="0" width="{TOTAL}" height="{TOTAL}" rx="6" fill="{FRAME_COLOR}"/>')
 
@@ -116,6 +119,8 @@ def render_board_svg(board, last_move_str=""):
         svg_parts.append(f'<text x="{MARGIN - 10}" y="{cy}" text-anchor="middle" font-size="12" fill="#D4A76A" font-family="monospace">{8 - i}</text>')
 
     sq_num = 0
+    sq_coords = {} # لحفظ إحداثيات كل مربع لرسم الأسهم لاحقاً
+
     for r in range(8):
         for c in range(8):
             x = MARGIN + c * CELL
@@ -126,14 +131,16 @@ def render_board_svg(board, last_move_str=""):
             
             if is_dark:
                 sq_num += 1
+                cx_p = x + CELL // 2
+                cy_p = y + CELL // 2
+                sq_coords[sq_num] = (cx_p, cy_p) # حفظ المركز
+
                 if sq_num in highlight_squares:
                     svg_parts.append(f'<rect x="{x}" y="{y}" width="{CELL}" height="{CELL}" fill="rgba(255,255,50,0.3)"/>')
                 svg_parts.append(f'<text x="{x + 4}" y="{y + 14}" font-size="10" fill="{NUM_COLOR}" font-family="monospace">{sq_num}</text>')
                 
                 if sq_num in piece_map:
                     color, is_king = piece_map[sq_num]
-                    cx_p = x + CELL // 2
-                    cy_p = y + CELL // 2
                     grad = "url(#wg)" if color == 'white' else "url(#bg)"
                     stroke = WHITE_STROKE if color == 'white' else BLACK_STROKE
                     inner_s = "#D4B896" if color == 'white' else "#333333"
@@ -144,6 +151,23 @@ def render_board_svg(board, last_move_str=""):
                         svg_parts.append(f'<text x="{cx_p}" y="{cy_p + 7}" text-anchor="middle" font-size="20" fill="{crown_c}" font-weight="bold">♛</text>')
 
     svg_parts.append(f'<rect x="{MARGIN}" y="{MARGIN}" width="{BOARD_SIZE}" height="{BOARD_SIZE}" fill="none" stroke="{FRAME_COLOR}" stroke-width="2"/>')
+
+    # رسم سهم الحركة الأخيرة
+    if last_move_str:
+        nums = [int(n) for n in re.findall(r'\d+', last_move_str)]
+        if len(nums) >= 2:
+            pts = [f"{sq_coords[n][0]},{sq_coords[n][1]}" for n in nums if n in sq_coords]
+            if len(pts) >= 2:
+                svg_parts.append(f'<polyline points="{" ".join(pts)}" fill="none" stroke="#FF4500" stroke-width="5" marker-end="url(#arrow)" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>')
+
+    # رسم سهم المساعدة (تلميح)
+    if hint_move_str:
+        nums = [int(n) for n in re.findall(r'\d+', hint_move_str)]
+        if len(nums) >= 2:
+            pts = [f"{sq_coords[n][0]},{sq_coords[n][1]}" for n in nums if n in sq_coords]
+            if len(pts) >= 2:
+                svg_parts.append(f'<polyline points="{" ".join(pts)}" fill="none" stroke="#00FF00" stroke-width="5" stroke-dasharray="8,8" marker-end="url(#hint-arrow)" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>')
+
     svg_parts.append('</svg>')
     return '\n'.join(svg_parts)
 
@@ -157,6 +181,7 @@ def init_game(player_color, ai_color, depth):
     st.session_state.game_over = False
     st.session_state.winner = None
     st.session_state.last_move = ""
+    st.session_state.hint_move = "" # إضافة متغير المساعدة
     st.session_state.ai_info = ""
     st.session_state.game_started = True
     st.session_state.pending_ai = False
@@ -176,6 +201,7 @@ def play_human_move():
         board.push(move)
         st.session_state.move_history.append(("👤", move_str))
         st.session_state.last_move = str(move)
+        st.session_state.hint_move = "" # مسح التلميح بعد اللعب
         if is_game_over(board):
             st.session_state.game_over = True
             st.session_state.winner = get_winner(board, st.session_state.player_color, st.session_state.ai_color)
@@ -186,20 +212,20 @@ def play_ai_move():
     board = st.session_state.board
     ai_color = st.session_state.ai_color
     depth = st.session_state.depth
-    # تم تقليل الوقت لـ 4 ثوانٍ ليكون متجاوباً بشكل مثالي على المتصفح
-    best_move, score, reached = find_best_move(board, ai_color, max_depth=depth, time_limit=4.0)
+    best_move, score, reached = find_best_move(board, ai_color, max_depth=depth, time_limit=3.5)
     
     if best_move:
         move_str = format_move(best_move)
         board.push(best_move)
         st.session_state.move_history.append(("🤖", move_str))
         st.session_state.last_move = str(best_move)
+        st.session_state.hint_move = "" # مسح أي تلميح قديم
         st.session_state.ai_info = f"العمق: {reached} | التقييم: {score:+.1f}"
         if is_game_over(board):
             st.session_state.game_over = True
             st.session_state.winner = get_winner(board, st.session_state.player_color, ai_color)
         else:
-            st.session_state.pending_ai = False # إيقاف تعليق الدور
+            st.session_state.pending_ai = False
     else:
         st.session_state.game_over = True
         st.session_state.winner = 'player'
@@ -218,6 +244,7 @@ def undo_move():
     st.session_state.game_over = False
     st.session_state.winner = None
     st.session_state.last_move = ""
+    st.session_state.hint_move = ""
     st.session_state.pending_ai = False
 
 def inject_css():
@@ -257,8 +284,7 @@ def main():
         color_choice = st.radio("🎨 اختر لونك:", ["⬜ أبيض (تبدأ أنت)", "⬛ أسود (يبدأ الكمبيوتر)"], index=0)
         difficulty = st.select_slider("🎯 مستوى الصعوبة:", options=["سهل", "متوسط", "صعب", "خبير"], value="متوسط")
         
-        # تم ضبط العمق ليتناسب مع سرعة لغة بايثون
-        depth_map = {"سهل": 2, "متوسط": 4, "صعب": 6, "خبير": 7}
+        depth_map = {"سهل": 2, "متوسط": 4, "صعب": 5, "خبير": 6}
         depth = depth_map[difficulty]
         
         st.markdown("---")
@@ -323,11 +349,9 @@ def main():
         st.markdown(f'<div class="board-container">{svg}</div>', unsafe_allow_html=True)
         st.stop()
 
-    # ─── تنفيذ حركة الكمبيوتر إذا كانت معلقة ───
     if st.session_state.pending_ai and not st.session_state.game_over:
         with st.spinner("🤖 الكمبيوتر يفكر..."):
             play_ai_move()
-        # إجبار الواجهة على التحديث لنقل الدور فوراً لك
         st.rerun()
 
     board = st.session_state.board
@@ -351,7 +375,8 @@ def main():
         else:
             st.markdown('<div class="status-box status-ai">🤖 دور الكمبيوتر</div>', unsafe_allow_html=True)
 
-    svg = render_board_svg(board, st.session_state.get("last_move", ""))
+    # إرسال الحركة الأخيرة وحركة المساعدة (إن وجدت) لدالة الرسم
+    svg = render_board_svg(board, st.session_state.get("last_move", ""), st.session_state.get("hint_move", ""))
     st.markdown(f'<div class="board-container">{svg}</div>', unsafe_allow_html=True)
 
     if not st.session_state.game_over and board.turn == player_color:
@@ -359,13 +384,24 @@ def main():
         if legal_moves:
             st.markdown("---")
             move_labels = [format_move(m) for m in legal_moves]
-            col_sel, col_btn = st.columns([3, 1])
+            
+            # قسمنا المساحة لثلاثة أعمدة لاحتواء القائمة وزرين
+            col_sel, col_btn, col_hint = st.columns([2, 1, 1])
             with col_sel:
                 st.selectbox("🎯 اختر حركتك:", range(len(move_labels)), format_func=lambda i: f"[{i}] {move_labels[i]}", key="move_select")
             with col_btn:
                 st.markdown("<br>", unsafe_allow_html=True)
                 if st.button("▶️ العب!", use_container_width=True, type="primary"):
                     play_human_move()
+                    st.rerun()
+            with col_hint:
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("💡 مساعدة", use_container_width=True):
+                    with st.spinner("جاري تحليل الرقعة..."):
+                        # نستدعي المحرك للبحث عن أفضل حركة للاعب (بعمق 4 ليكون سريعاً كفاية)
+                        hint_mv, _, _ = find_best_move(board, player_color, max_depth=4, time_limit=2.0)
+                        if hint_mv:
+                            st.session_state.hint_move = str(hint_mv)
                     st.rerun()
 
 if __name__ == "__main__":
