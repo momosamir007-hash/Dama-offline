@@ -1,6 +1,4 @@
-"""
-لعبة الداما الكلاسيكية - واجهة Streamlit المتقدمة الكاملة
-"""
+""" لعبة الداما الكلاسيكية - واجهة Streamlit المتقدمة الكاملة النسخة المُصححة - جميع الأخطاء تم إصلاحها """
 import re
 import time
 import streamlit as st
@@ -54,11 +52,9 @@ def inject_css():
     st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;700;900&display=swap');
-
     html, body, [class*="css"] {
         direction: rtl;
     }
-
     .main-title {
         text-align: center;
         font-family: 'Tajawal', sans-serif;
@@ -71,7 +67,6 @@ def inject_css():
         padding: 10px 0 2px;
         letter-spacing: 2px;
     }
-
     .sub-title {
         text-align: center;
         font-family: 'Tajawal', sans-serif;
@@ -80,7 +75,6 @@ def inject_css():
         margin: 0 0 6px;
         letter-spacing: 1px;
     }
-
     .index-container {
         background: linear-gradient(135deg, rgba(30,40,60,0.97), rgba(20,30,50,0.97));
         border: 1px solid rgba(255,215,0,0.3);
@@ -90,7 +84,6 @@ def inject_css():
         font-family: 'Tajawal', sans-serif;
         direction: rtl;
     }
-
     .index-title {
         font-size: 1.2rem;
         font-weight: 900;
@@ -99,7 +92,6 @@ def inject_css():
         border-bottom: 2px solid rgba(255,215,0,0.3);
         padding-bottom: 6px;
     }
-
     .index-item {
         display: flex;
         align-items: center;
@@ -108,28 +100,23 @@ def inject_css():
         border-radius: 7px;
         border: 1px solid transparent;
     }
-
     .index-item:hover {
         background: rgba(255,215,0,0.1);
         border-color: rgba(255,215,0,0.3);
     }
-
     .index-icon {
         font-size: 1.15rem;
         margin-left: 9px;
     }
-
     .index-label {
         font-size: 0.9rem;
         color: #DDD;
         font-weight: 700;
     }
-
     .index-desc {
         font-size: 0.72rem;
         color: #888;
     }
-
     .status-box {
         text-align: center;
         padding: 9px 14px;
@@ -140,19 +127,16 @@ def inject_css():
         margin: 5px 0;
         direction: rtl;
     }
-
     .status-player {
         background: linear-gradient(135deg, #1B5E20, #2E7D32);
         color: #FFF;
         border: 2px solid #4CAF50;
     }
-
     .status-ai {
         background: linear-gradient(135deg, #B71C1C, #C62828);
         color: #FFF;
         border: 2px solid #EF5350;
     }
-
     .status-win {
         background: linear-gradient(135deg, #F9A825, #FFD54F);
         color: #1A1A1A;
@@ -160,24 +144,20 @@ def inject_css():
         font-size: 1.35rem;
         animation: pulse 1s infinite;
     }
-
     .status-lose {
         background: linear-gradient(135deg, #37474F, #546E7A);
         color: #FFF;
         border: 2px solid #78909C;
     }
-
     .status-draw {
         background: linear-gradient(135deg, #0D47A1, #1565C0);
         color: #FFF;
         border: 2px solid #42A5F5;
     }
-
     @keyframes pulse {
         0%, 100% { transform: scale(1); }
         50% { transform: scale(1.02); }
     }
-
     .analysis-card {
         background: linear-gradient(135deg, rgba(12,22,45,0.99), rgba(18,32,65,0.99));
         border: 2px solid rgba(0,200,100,0.4);
@@ -188,14 +168,12 @@ def inject_css():
         direction: rtl;
         box-shadow: 0 4px 22px rgba(0,200,100,0.12);
     }
-
     .analysis-title {
         font-size: 1.1rem;
         font-weight: 900;
         color: #00CC66;
         margin-bottom: 8px;
     }
-
     .analysis-section {
         margin: 8px 0;
         padding: 9px;
@@ -203,19 +181,16 @@ def inject_css():
         border-radius: 7px;
         border-right: 3px solid rgba(0,200,100,0.45);
     }
-
     .analysis-label {
         font-size: 0.78rem;
         color: #888;
         margin-bottom: 3px;
     }
-
     .analysis-value {
         font-size: 0.92rem;
         color: #EEE;
         font-weight: 700;
     }
-
     .move-card {
         display: flex;
         align-items: center;
@@ -226,31 +201,25 @@ def inject_css():
         font-family: 'Tajawal', sans-serif;
         direction: rtl;
     }
-
     .move-card.best {
         background: rgba(0,200,100,0.14);
         border-color: rgba(0,200,100,0.38);
     }
-
     .move-card.good {
         background: rgba(255,200,0,0.07);
         border-color: rgba(255,200,0,0.28);
     }
-
     .move-card.neutral {
         background: rgba(100,100,100,0.09);
     }
-
     .move-card.bad {
         background: rgba(255,60,60,0.07);
         border-color: rgba(255,60,60,0.25);
     }
-
     .move-rank {
         font-size: 1.05rem;
         margin-left: 7px;
     }
-
     .move-str {
         font-size: 0.95rem;
         font-weight: 900;
@@ -258,13 +227,11 @@ def inject_css():
         font-family: monospace;
         min-width: 75px;
     }
-
     .move-label {
         font-size: 0.75rem;
         color: #AAA;
         margin-right: auto;
     }
-
     .move-badge {
         font-size: 0.68rem;
         padding: 2px 6px;
@@ -272,17 +239,14 @@ def inject_css():
         margin-right: 4px;
         font-weight: 700;
     }
-
     .badge-cap {
         background: rgba(255,80,80,0.25);
         color: #FF8888;
     }
-
     .badge-prom {
         background: rgba(255,200,0,0.25);
         color: #FFD700;
     }
-
     .eval-container {
         background: rgba(255,255,255,0.045);
         border-radius: 8px;
@@ -290,19 +254,14 @@ def inject_css():
         margin: 5px 0;
         font-family: 'Tajawal', sans-serif;
     }
-
     .eval-bar-bg {
         height: 13px;
         border-radius: 6px;
-        background: linear-gradient(to left,
-            #EF5350 0%, #FF8C00 25%, #FFC107 40%,
-            #888 50%,
-            #66BB6A 60%, #00C853 75%, #00E676 100%);
+        background: linear-gradient(to left, #EF5350 0%, #FF8C00 25%, #FFC107 40%, #888 50%, #66BB6A 60%, #00C853 75%, #00E676 100%);
         position: relative;
         margin: 5px 0;
         overflow: hidden;
     }
-
     .eval-marker {
         position: absolute;
         top: 0;
@@ -312,7 +271,6 @@ def inject_css():
         border-radius: 2px;
         box-shadow: 0 0 4px rgba(255,255,255,0.8);
     }
-
     .info-card {
         background: rgba(255,255,255,0.038);
         border: 1px solid rgba(255,255,255,0.09);
@@ -322,28 +280,23 @@ def inject_css():
         font-family: 'Tajawal', sans-serif;
         direction: rtl;
     }
-
     .piece-count {
         display: flex;
         justify-content: space-around;
         align-items: center;
         padding: 5px;
     }
-
     .piece-side {
         text-align: center;
     }
-
     .piece-num {
         font-size: 1.9rem;
         font-weight: 900;
     }
-
     .piece-sub {
         font-size: 0.76rem;
         color: #999;
     }
-
     .history-row {
         display: flex;
         align-items: center;
@@ -354,63 +307,52 @@ def inject_css():
         direction: rtl;
         font-size: 0.86rem;
     }
-
     .history-row:nth-child(odd) {
         background: rgba(255,255,255,0.028);
     }
-
     .history-row.last-move {
         background: rgba(255,215,0,0.11);
         border: 1px solid rgba(255,215,0,0.28);
         font-weight: 700;
     }
-
     .h-num {
         color: #666;
         width: 22px;
         flex-shrink: 0;
     }
-
     .h-who {
         width: 26px;
         flex-shrink: 0;
     }
-
     .h-move {
         color: #EEE;
         font-family: monospace;
         flex: 1;
     }
-
     .h-type {
         font-size: 0.72rem;
         color: #888;
     }
-
     .stButton > button {
         font-family: 'Tajawal', sans-serif !important;
         font-weight: 700 !important;
         border-radius: 8px !important;
         transition: all 0.18s !important;
     }
-
     .stButton > button:hover {
         transform: translateY(-1px) !important;
         box-shadow: 0 5px 18px rgba(0,0,0,0.38) !important;
     }
-
     .stButton > button[kind="primary"] {
         background: linear-gradient(135deg, #00C853, #00E676) !important;
         color: #000 !important;
         border: none !important;
     }
-
     .board-wrap {
         display: flex;
         justify-content: center;
         padding: 6px 0;
     }
-
     .stat-pill {
         display: inline-block;
         padding: 3px 9px;
@@ -420,12 +362,22 @@ def inject_css():
         margin: 2px 2px;
         font-weight: 700;
     }
-
-    .sg { background: rgba(0,200,80,0.18);  color: #00E676; }
-    .sb { background: rgba(0,150,255,0.18); color: #64B5F6; }
-    .so { background: rgba(255,150,0,0.18); color: #FFB74D; }
-    .sr { background: rgba(255,80,80,0.18); color: #EF9A9A; }
-
+    .sg {
+        background: rgba(0,200,80,0.18);
+        color: #00E676;
+    }
+    .sb {
+        background: rgba(0,150,255,0.18);
+        color: #64B5F6;
+    }
+    .so {
+        background: rgba(255,150,0,0.18);
+        color: #FFB74D;
+    }
+    .sr {
+        background: rgba(255,80,80,0.18);
+        color: #EF9A9A;
+    }
     .section-header {
         font-family: 'Tajawal', sans-serif;
         font-size: 1.05rem;
@@ -436,7 +388,6 @@ def inject_css():
         margin: 10px 0 7px;
         direction: rtl;
     }
-
     .hint-box {
         background: rgba(0,200,100,0.07);
         border: 1px solid rgba(0,200,100,0.28);
@@ -448,14 +399,12 @@ def inject_css():
         direction: rtl;
         color: #88FFBB;
     }
-
     .safety-box {
         display: flex;
         gap: 8px;
         margin: 6px 0;
         direction: rtl;
     }
-
     .safety-item {
         flex: 1;
         text-align: center;
@@ -463,27 +412,22 @@ def inject_css():
         border-radius: 8px;
         font-family: 'Tajawal', sans-serif;
     }
-
     .safety-good {
         background: rgba(0,200,80,0.12);
         border: 1px solid rgba(0,200,80,0.3);
     }
-
     .safety-warn {
         background: rgba(255,80,80,0.12);
         border: 1px solid rgba(255,80,80,0.3);
     }
-
     .safety-num {
         font-size: 1.5rem;
         font-weight: 900;
     }
-
     .safety-lbl {
         font-size: 0.72rem;
         color: #999;
     }
-
     .welcome-feature {
         display: flex;
         align-items: flex-start;
@@ -496,25 +440,21 @@ def inject_css():
         direction: rtl;
         gap: 11px;
     }
-
     .wf-icon {
         font-size: 1.5rem;
         flex-shrink: 0;
     }
-
     .wf-title {
         font-size: 0.92rem;
         font-weight: 700;
         color: #FFD700;
         margin-bottom: 2px;
     }
-
     .wf-desc {
         font-size: 0.78rem;
         color: #999;
         line-height: 1.4;
     }
-
     .game-over-stats {
         background: linear-gradient(135deg, rgba(12,22,45,0.99), rgba(18,32,65,0.99));
         border: 2px solid rgba(255,215,0,0.28);
@@ -544,9 +484,9 @@ def count_pieces(board):
     """
     fen = get_board_fen(board)
     wp, bp = parse_fen_pieces(fen)
-    w_men   = sum(1 for _, k in wp if not k)
+    w_men = sum(1 for _, k in wp if not k)
     w_kings = sum(1 for _, k in wp if k)
-    b_men   = sum(1 for _, k in bp if not k)
+    b_men = sum(1 for _, k in bp if not k)
     b_kings = sum(1 for _, k in bp if k)
     return w_men, w_kings, b_men, b_kings
 
@@ -593,8 +533,7 @@ def eval_to_pct(score: float) -> float:
 # ════════════════════════════════════════════
 # رسم السهم على الرقعة
 # ════════════════════════════════════════════
-def _draw_arrow(svg_parts, mv_str, sq_coords,
-                arrow_color, marker_id, dash_style, opacity_val):
+def _draw_arrow(svg_parts, mv_str, sq_coords, arrow_color, marker_id, dash_style, opacity_val):
     """رسم سهم على الرقعة لتمثيل الحركة"""
     if not mv_str:
         return
@@ -623,22 +562,21 @@ def _draw_arrow(svg_parts, mv_str, sq_coords,
 # ════════════════════════════════════════════
 # رسم الرقعة SVG
 # ════════════════════════════════════════════
-def render_board(board, last_move="", hint_move="",
-                 threatened_squares=None) -> str:
+def render_board(board, last_move="", hint_move="", threatened_squares=None) -> str:
     """
     رسم رقعة الداما كـ SVG كامل.
     - last_move: سهم برتقالي للحركة الأخيرة
     - hint_move: سهم أخضر منقط للتلميح
     - threatened_squares: مجموعة مربعات القطع المهددة
     """
-    CELL_SIZE  = 66
-    BOARD_SZ   = CELL_SIZE * 8
-    MARGIN     = 30
+    CELL_SIZE = 66
+    BOARD_SZ = CELL_SIZE * 8
+    MARGIN = 30
     TOTAL_SIZE = BOARD_SZ + MARGIN * 2
-    PIECE_R    = 26
-    INNER_R    = 18
-    TS         = threatened_squares if threatened_squares else set()
+    PIECE_R = 26
+    INNER_R = 18
 
+    TS = threatened_squares if threatened_squares else set()
     fen = get_board_fen(board)
     wp, bp = parse_fen_pieces(fen)
     piece_map = {}
@@ -654,7 +592,6 @@ def render_board(board, last_move="", hint_move="",
                 hl_last.add(int(n))
             except ValueError:
                 pass
-
     hl_hint = set()
     if hint_move:
         for n in re.findall(r'\d+', hint_move):
@@ -669,43 +606,40 @@ def render_board(board, last_move="", hint_move="",
         f'viewBox="0 0 {TOTAL_SIZE} {TOTAL_SIZE}" width="100%" '
         f'style="max-width:{TOTAL_SIZE}px;display:block;margin:0 auto">'
     )
-
     svg.append("""<defs>
-      <filter id="sh">
-        <feDropShadow dx="1" dy="2" stdDeviation="3" flood-opacity="0.6"/>
-      </filter>
-      <filter id="glow">
-        <feGaussianBlur stdDeviation="3" result="b"/>
-        <feMerge>
-          <feMergeNode in="b"/>
-          <feMergeNode in="SourceGraphic"/>
-        </feMerge>
-      </filter>
-      <filter id="danger-glow">
-        <feGaussianBlur stdDeviation="4" result="b"/>
-        <feMerge>
-          <feMergeNode in="b"/>
-          <feMergeNode in="SourceGraphic"/>
-        </feMerge>
-      </filter>
-      <radialGradient id="wg" cx="38%" cy="32%" r="60%">
-        <stop offset="0%"   stop-color="#FFFFFF"/>
-        <stop offset="55%"  stop-color="#EDD9A3"/>
-        <stop offset="100%" stop-color="#C8A050"/>
-      </radialGradient>
-      <radialGradient id="bg" cx="38%" cy="32%" r="60%">
-        <stop offset="0%"   stop-color="#666666"/>
-        <stop offset="55%"  stop-color="#2A2A2A"/>
-        <stop offset="100%" stop-color="#0A0A0A"/>
-      </radialGradient>
-      <marker id="last-arr" viewBox="0 0 10 10" refX="8" refY="5"
-              markerWidth="5" markerHeight="5" orient="auto">
-        <path d="M0 0 L10 5 L0 10z" fill="#FF4500"/>
-      </marker>
-      <marker id="hint-arr" viewBox="0 0 10 10" refX="8" refY="5"
-              markerWidth="5" markerHeight="5" orient="auto">
-        <path d="M0 0 L10 5 L0 10z" fill="#00DD55"/>
-      </marker>
+        <filter id="sh">
+            <feDropShadow dx="1" dy="2" stdDeviation="3" flood-opacity="0.6"/>
+        </filter>
+        <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="b"/>
+            <feMerge>
+                <feMergeNode in="b"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+        <filter id="danger-glow">
+            <feGaussianBlur stdDeviation="4" result="b"/>
+            <feMerge>
+                <feMergeNode in="b"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+        <radialGradient id="wg" cx="38%" cy="32%" r="60%">
+            <stop offset="0%" stop-color="#FFFFFF"/>
+            <stop offset="55%" stop-color="#EDD9A3"/>
+            <stop offset="100%" stop-color="#C8A050"/>
+        </radialGradient>
+        <radialGradient id="bg" cx="38%" cy="32%" r="60%">
+            <stop offset="0%" stop-color="#666666"/>
+            <stop offset="55%" stop-color="#2A2A2A"/>
+            <stop offset="100%" stop-color="#0A0A0A"/>
+        </radialGradient>
+        <marker id="last-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M0 0 L10 5 L0 10z" fill="#FF4500"/>
+        </marker>
+        <marker id="hint-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M0 0 L10 5 L0 10z" fill="#00DD55"/>
+        </marker>
     </defs>""")
 
     # الإطار الخشبي
@@ -739,116 +673,107 @@ def render_board(board, last_move="", hint_move="",
 
     sq_number = 0
     sq_coords = {}
-
     for row in range(8):
         for col in range(8):
             x_pos = MARGIN + col * CELL_SIZE
             y_pos = MARGIN + row * CELL_SIZE
             is_dark = (row + col) % 2 == 1
             sq_color = "#B58863" if is_dark else "#F0D9B5"
-
             svg.append(
                 f'<rect x="{x_pos}" y="{y_pos}" '
                 f'width="{CELL_SIZE}" height="{CELL_SIZE}" '
                 f'fill="{sq_color}"/>'
             )
-
             if is_dark:
                 sq_number += 1
-                center_x = x_pos + CELL_SIZE // 2
-                center_y = y_pos + CELL_SIZE // 2
-                sq_coords[sq_number] = (center_x, center_y)
+            center_x = x_pos + CELL_SIZE // 2
+            center_y = y_pos + CELL_SIZE // 2
+            sq_coords[sq_number] = (center_x, center_y)
 
-                # تظليل آخر حركة
-                if sq_number in hl_last:
-                    svg.append(
-                        f'<rect x="{x_pos}" y="{y_pos}" '
-                        f'width="{CELL_SIZE}" height="{CELL_SIZE}" '
-                        f'fill="rgba(255,220,50,0.30)"/>'
-                    )
-
-                # تظليل التلميح
-                if sq_number in hl_hint:
-                    svg.append(
-                        f'<rect x="{x_pos}" y="{y_pos}" '
-                        f'width="{CELL_SIZE}" height="{CELL_SIZE}" '
-                        f'fill="rgba(0,220,80,0.20)"/>'
-                    )
-
-                # تظليل القطع المهددة بالأحمر
-                if sq_number in TS:
-                    svg.append(
-                        f'<rect x="{x_pos}" y="{y_pos}" '
-                        f'width="{CELL_SIZE}" height="{CELL_SIZE}" '
-                        f'fill="rgba(255,30,30,0.22)"/>'
-                    )
-                    svg.append(
-                        f'<rect x="{x_pos}" y="{y_pos}" '
-                        f'width="{CELL_SIZE}" height="{CELL_SIZE}" '
-                        f'fill="none" stroke="rgba(255,60,60,0.6)" '
-                        f'stroke-width="2"/>'
-                    )
-
-                # رقم المربع
+            # تظليل آخر حركة
+            if sq_number in hl_last:
                 svg.append(
-                    f'<text x="{x_pos + 4}" y="{y_pos + 14}" '
-                    f'font-size="10" fill="rgba(255,255,255,0.26)" '
-                    f'font-family="monospace">{sq_number}</text>'
+                    f'<rect x="{x_pos}" y="{y_pos}" '
+                    f'width="{CELL_SIZE}" height="{CELL_SIZE}" '
+                    f'fill="rgba(255,220,50,0.30)"/>'
+                )
+            # تظليل التلميح
+            if sq_number in hl_hint:
+                svg.append(
+                    f'<rect x="{x_pos}" y="{y_pos}" '
+                    f'width="{CELL_SIZE}" height="{CELL_SIZE}" '
+                    f'fill="rgba(0,220,80,0.20)"/>'
+                )
+            # تظليل القطع المهددة بالأحمر
+            if sq_number in TS:
+                svg.append(
+                    f'<rect x="{x_pos}" y="{y_pos}" '
+                    f'width="{CELL_SIZE}" height="{CELL_SIZE}" '
+                    f'fill="rgba(255,30,30,0.22)"/>'
+                )
+                svg.append(
+                    f'<rect x="{x_pos}" y="{y_pos}" '
+                    f'width="{CELL_SIZE}" height="{CELL_SIZE}" '
+                    f'fill="none" stroke="rgba(255,60,60,0.6)" '
+                    f'stroke-width="2"/>'
                 )
 
-                # رسم القطعة
-                if sq_number in piece_map:
-                    piece_color, is_king = piece_map[sq_number]
-                    gradient   = "url(#wg)" if piece_color == 'w' else "url(#bg)"
-                    stroke_c   = "#BFA070"  if piece_color == 'w' else "#111111"
-                    inner_c    = "#D4B896"  if piece_color == 'w' else "#2A2A2A"
-                    is_danger  = sq_number in TS
+            # رقم المربع
+            svg.append(
+                f'<text x="{x_pos + 4}" y="{y_pos + 14}" '
+                f'font-size="10" fill="rgba(255,255,255,0.26)" '
+                f'font-family="monospace">{sq_number}</text>'
+            )
 
-                    # ظل القطعة
-                    svg.append(
-                        f'<circle cx="{center_x + 1}" cy="{center_y + 3}" '
-                        f'r="{PIECE_R}" fill="rgba(0,0,0,0.4)"/>'
-                    )
+            # رسم القطعة
+            if sq_number in piece_map:
+                piece_color, is_king = piece_map[sq_number]
+                gradient = "url(#wg)" if piece_color == 'w' else "url(#bg)"
+                stroke_c = "#BFA070" if piece_color == 'w' else "#111111"
+                inner_c = "#D4B896" if piece_color == 'w' else "#2A2A2A"
+                is_danger = sq_number in TS
 
-                    # جسم القطعة
-                    if is_danger:
-                        svg.append(
-                            f'<circle cx="{center_x}" cy="{center_y}" '
-                            f'r="{PIECE_R}" fill="{gradient}" '
-                            f'stroke="#FF4444" stroke-width="3.5" '
-                            f'filter="url(#danger-glow)"/>'
-                        )
-                    else:
-                        svg.append(
-                            f'<circle cx="{center_x}" cy="{center_y}" '
-                            f'r="{PIECE_R}" fill="{gradient}" '
-                            f'stroke="{stroke_c}" stroke-width="2.5" '
-                            f'filter="url(#sh)"/>'
-                        )
-
-                    # الحلقة الداخلية
+                # ظل القطعة
+                svg.append(
+                    f'<circle cx="{center_x + 1}" cy="{center_y + 3}" '
+                    f'r="{PIECE_R}" fill="rgba(0,0,0,0.4)"/>'
+                )
+                # جسم القطعة
+                if is_danger:
                     svg.append(
                         f'<circle cx="{center_x}" cy="{center_y}" '
-                        f'r="{INNER_R}" fill="none" stroke="{inner_c}" '
-                        f'stroke-width="1.5" opacity="0.5"/>'
+                        f'r="{PIECE_R}" fill="{gradient}" '
+                        f'stroke="#FF4444" stroke-width="3.5" '
+                        f'filter="url(#danger-glow)"/>'
                     )
-
-                    # رمز الملك
-                    if is_king:
-                        crown_color = "#DAA520" if piece_color == 'w' else "#FFD700"
-                        svg.append(
-                            f'<text x="{center_x}" y="{center_y + 8}" '
-                            f'text-anchor="middle" font-size="24" '
-                            f'fill="{crown_color}" font-weight="bold" '
-                            f'filter="url(#glow)">♛</text>'
-                        )
-
-                    # أيقونة التحذير للقطع المهددة
-                    if is_danger:
-                        svg.append(
-                            f'<text x="{center_x + 18}" y="{center_y - 14}" '
-                            f'font-size="14" fill="#FF4444">⚠</text>'
-                        )
+                else:
+                    svg.append(
+                        f'<circle cx="{center_x}" cy="{center_y}" '
+                        f'r="{PIECE_R}" fill="{gradient}" '
+                        f'stroke="{stroke_c}" stroke-width="2.5" '
+                        f'filter="url(#sh)"/>'
+                    )
+                # الحلقة الداخلية
+                svg.append(
+                    f'<circle cx="{center_x}" cy="{center_y}" '
+                    f'r="{INNER_R}" fill="none" stroke="{inner_c}" '
+                    f'stroke-width="1.5" opacity="0.5"/>'
+                )
+                # رمز الملك
+                if is_king:
+                    crown_color = "#DAA520" if piece_color == 'w' else "#FFD700"
+                    svg.append(
+                        f'<text x="{center_x}" y="{center_y + 8}" '
+                        f'text-anchor="middle" font-size="24" '
+                        f'fill="{crown_color}" font-weight="bold" '
+                        f'filter="url(#glow)">♛</text>'
+                    )
+                # أيقونة التحذير للقطع المهددة
+                if is_danger:
+                    svg.append(
+                        f'<text x="{center_x + 18}" y="{center_y - 14}" '
+                        f'font-size="14" fill="#FF4444">⚠</text>'
+                    )
 
     # حدود الرقعة
     svg.append(
@@ -859,12 +784,10 @@ def render_board(board, last_move="", hint_move="",
 
     # رسم الأسهم
     _draw_arrow(
-        svg, last_move, sq_coords,
-        "#FF4500", "last-arr", "", "0.80"
+        svg, last_move, sq_coords, "#FF4500", "last-arr", "", "0.80"
     )
     _draw_arrow(
-        svg, hint_move, sq_coords,
-        "#00DD55", "hint-arr", 'stroke-dasharray="10,6"', "0.90"
+        svg, hint_move, sq_coords, "#00DD55", "hint-arr", 'stroke-dasharray="10,6"', "0.90"
     )
 
     svg.append('</svg>')
@@ -880,7 +803,6 @@ def render_index():
     <div class="index-container">
         <div class="index-title">📋 فهرس البرنامج</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;direction:rtl">
-
             <div class="index-item">
                 <span class="index-icon">🎮</span>
                 <span>
@@ -888,7 +810,6 @@ def render_index():
                     <div class="index-desc">8×8 | 12 قطعة لكل جانب</div>
                 </span>
             </div>
-
             <div class="index-item">
                 <span class="index-icon">🧠</span>
                 <span>
@@ -896,7 +817,6 @@ def render_index():
                     <div class="index-desc">Minimax + Alpha-Beta | عمق 24</div>
                 </span>
             </div>
-
             <div class="index-item">
                 <span class="index-icon">💡</span>
                 <span>
@@ -904,7 +824,6 @@ def render_index():
                     <div class="index-desc">تحليل عميق + أفضل 5 حركات</div>
                 </span>
             </div>
-
             <div class="index-item">
                 <span class="index-icon">🛡️</span>
                 <span>
@@ -912,7 +831,6 @@ def render_index():
                     <div class="index-desc">كشف التهديدات لحظياً</div>
                 </span>
             </div>
-
             <div class="index-item">
                 <span class="index-icon">🍴</span>
                 <span>
@@ -920,7 +838,6 @@ def render_index():
                     <div class="index-desc">Forks + Traps + Decoys</div>
                 </span>
             </div>
-
             <div class="index-item">
                 <span class="index-icon">⚡</span>
                 <span>
@@ -928,7 +845,6 @@ def render_index():
                     <div class="index-desc">بحث أسرع وأكثر دقة</div>
                 </span>
             </div>
-
             <div class="index-item">
                 <span class="index-icon">🔬</span>
                 <span>
@@ -936,7 +852,6 @@ def render_index():
                     <div class="index-desc">استقرار الأكل | عمق 10</div>
                 </span>
             </div>
-
             <div class="index-item">
                 <span class="index-icon">📚</span>
                 <span>
@@ -944,7 +859,6 @@ def render_index():
                     <div class="index-desc">5 افتتاحيات كلاسيكية</div>
                 </span>
             </div>
-
             <div class="index-item">
                 <span class="index-icon">🔀</span>
                 <span>
@@ -952,7 +866,6 @@ def render_index():
                     <div class="index-desc">TT بحجم 1,000,000 إدخال</div>
                 </span>
             </div>
-
             <div class="index-item">
                 <span class="index-icon">📊</span>
                 <span>
@@ -960,7 +873,6 @@ def render_index():
                     <div class="index-desc">تقييم موضعي متعدد المراحل</div>
                 </span>
             </div>
-
             <div class="index-item">
                 <span class="index-icon">🎯</span>
                 <span>
@@ -968,7 +880,6 @@ def render_index():
                     <div class="index-desc">Late Move Reduction متقدم</div>
                 </span>
             </div>
-
             <div class="index-item">
                 <span class="index-icon">📜</span>
                 <span>
@@ -976,7 +887,6 @@ def render_index():
                     <div class="index-desc">كامل مع أنواع الحركات</div>
                 </span>
             </div>
-
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1018,12 +928,11 @@ def render_analysis_panel(analysis: dict):
 
     # صندوق السلامة
     threatened_mine = analysis.get("threatened_mine", 0)
-    threatened_opp  = analysis.get("threatened_opp",  0)
+    threatened_opp = analysis.get("threatened_opp", 0)
     mine_class = "safety-warn" if threatened_mine > 0 else "safety-good"
-    opp_class  = "safety-good" if threatened_opp  > 0 else "safety-good"
-    mine_icon  = "⚠️" if threatened_mine > 0 else "✅"
-    opp_icon   = "🎯" if threatened_opp  > 0 else "—"
-
+    opp_class = "safety-good" if threatened_opp > 0 else "safety-good"
+    mine_icon = "⚠️" if threatened_mine > 0 else "✅"
+    opp_icon = "🎯" if threatened_opp > 0 else "—"
     st.markdown(
         f'<div class="safety-box">'
         f'<div class="safety-item {mine_class}">'
@@ -1061,18 +970,17 @@ def render_analysis_panel(analysis: dict):
             '</div>',
             unsafe_allow_html=True
         )
-        rank_icons  = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
+        rank_icons = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
         card_styles = ["best", "good", "neutral", "neutral", "bad"]
-
         for idx, mv_data in enumerate(top_moves):
-            rank_icon  = rank_icons[idx]  if idx < len(rank_icons)  else "▪️"
+            rank_icon = rank_icons[idx] if idx < len(rank_icons) else "▪️"
             card_style = card_styles[idx] if idx < len(card_styles) else "neutral"
-            mv_str     = mv_data.get("move",  "?")
-            mv_label   = mv_data.get("label", "")
-            mv_score   = mv_data.get("score", 0)
-            is_cap     = mv_data.get("is_capture",   False)
-            is_prom    = mv_data.get("is_promotion",  False)
-            cap_n      = mv_data.get("cap_count",     0)
+            mv_str = mv_data.get("move", "?")
+            mv_label = mv_data.get("label", "")
+            mv_score = mv_data.get("score", 0)
+            is_cap = mv_data.get("is_capture", False)
+            is_prom = mv_data.get("is_promotion", False)
+            cap_n = mv_data.get("cap_count", 0)
 
             badges_html = ""
             if is_cap:
@@ -1113,7 +1021,7 @@ def render_analysis_panel(analysis: dict):
 
     # معلومات البحث
     reached_depth = analysis.get("reached_depth", 0)
-    analysis_time = analysis.get("analysis_time",  "")
+    analysis_time = analysis.get("analysis_time", "")
     time_text = f" | ⏱ {analysis_time}" if analysis_time else ""
     st.markdown(
         f'<div style="margin-top:8px;font-family:Tajawal;font-size:0.78rem;'
@@ -1132,25 +1040,25 @@ def init_game(player_color, ai_color, depth, time_limit):
     """تهيئة لعبة جديدة وإعادة ضبط جميع متغيرات الحالة"""
     clear_transposition_table()
     board = Board(variant="english")
-    st.session_state['board']          = board
-    st.session_state['player_color']   = player_color
-    st.session_state['ai_color']       = ai_color
-    st.session_state['depth']          = depth
-    st.session_state['time_limit']     = time_limit
-    st.session_state['move_history']   = []
-    st.session_state['game_over']      = False
-    st.session_state['winner']         = None
-    st.session_state['last_move']      = ""
-    st.session_state['hint_move']      = ""
-    st.session_state['ai_info']        = ""
-    st.session_state['game_started']   = True
-    st.session_state['pending_ai']     = (board.turn == ai_color)
-    st.session_state['celebrated']     = False
-    st.session_state['analysis']       = None
-    st.session_state['show_analysis']  = False
-    st.session_state['move_count']     = 0
-    st.session_state['captures_w']     = 0
-    st.session_state['captures_b']     = 0
+    st.session_state['board'] = board
+    st.session_state['player_color'] = player_color
+    st.session_state['ai_color'] = ai_color
+    st.session_state['depth'] = depth
+    st.session_state['time_limit'] = time_limit
+    st.session_state['move_history'] = []
+    st.session_state['game_over'] = False
+    st.session_state['winner'] = None
+    st.session_state['last_move'] = ""
+    st.session_state['hint_move'] = ""
+    st.session_state['ai_info'] = ""
+    st.session_state['game_started'] = True
+    st.session_state['pending_ai'] = (board.turn == ai_color)
+    st.session_state['celebrated'] = False
+    st.session_state['analysis'] = None
+    st.session_state['show_analysis'] = False
+    st.session_state['move_count'] = 0
+    st.session_state['captures_w'] = 0
+    st.session_state['captures_b'] = 0
     st.session_state['threatened_sqs'] = set()
 
 
@@ -1158,19 +1066,16 @@ def play_human_move():
     """تنفيذ الحركة المختارة من اللاعب البشري"""
     if st.session_state.get('game_over'):
         return
-
-    board       = st.session_state['board']
+    board = st.session_state['board']
     legal_moves = get_legal_moves(board)
-    move_index  = st.session_state.get("move_select", 0)
-
+    move_index = st.session_state.get("move_select", 0)
     if not (0 <= move_index < len(legal_moves)):
         st.warning("⚠️ اختر حركة صحيحة من القائمة")
         return
-
     chosen_move = legal_moves[move_index]
-    move_str    = fmt(chosen_move)
-    is_cap      = _is_capture(chosen_move)
-    is_prom     = _is_promotion(chosen_move)
+    move_str = fmt(chosen_move)
+    is_cap = _is_capture(chosen_move)
+    is_prom = _is_promotion(chosen_move)
 
     board.push(chosen_move)
 
@@ -1182,24 +1087,28 @@ def play_human_move():
         move_type = "➡️"
 
     st.session_state['move_history'].append(("👤", move_str, move_type))
-    st.session_state['last_move']      = move_str
-    st.session_state['hint_move']      = ""
-    st.session_state['analysis']       = None
-    st.session_state['show_analysis']  = False
-    st.session_state['move_count']     = st.session_state.get('move_count', 0) + 1
+    st.session_state['last_move'] = move_str
+    st.session_state['hint_move'] = ""
+    st.session_state['analysis'] = None
+    st.session_state['show_analysis'] = False
+    st.session_state['move_count'] = st.session_state.get('move_count', 0) + 1
     st.session_state['threatened_sqs'] = set()
 
+    # إصلاح #4: عدّاد الأكل حسب لون اللاعب الفعلي
     if is_cap:
-        st.session_state['captures_w'] = (
-            st.session_state.get('captures_w', 0) + 1
-        )
+        if st.session_state['player_color'] == WHITE:
+            st.session_state['captures_w'] = (
+                st.session_state.get('captures_w', 0) + 1
+            )
+        else:
+            st.session_state['captures_b'] = (
+                st.session_state.get('captures_b', 0) + 1
+            )
 
     if is_game_over(board):
         st.session_state['game_over'] = True
-        st.session_state['winner']    = get_winner(
-            board,
-            st.session_state['player_color'],
-            st.session_state['ai_color']
+        st.session_state['winner'] = get_winner(
+            board, st.session_state['player_color'], st.session_state['ai_color']
         )
     else:
         st.session_state['pending_ai'] = True
@@ -1207,23 +1116,17 @@ def play_human_move():
 
 def play_ai_move():
     """تنفيذ حركة الذكاء الاصطناعي"""
-    board      = st.session_state['board']
-    ai_color   = st.session_state['ai_color']
-    depth      = st.session_state['depth']
+    board = st.session_state['board']
+    ai_color = st.session_state['ai_color']
+    depth = st.session_state['depth']
     time_limit = st.session_state.get('time_limit', 5.0)
-
     best_move, score, reached_depth = find_best_move(
-        board,
-        ai_color,
-        max_depth=depth,
-        time_limit=time_limit
+        board, ai_color, max_depth=depth, time_limit=time_limit
     )
-
     if best_move is not None:
         move_str = fmt(best_move)
-        is_cap   = _is_capture(best_move)
-        is_prom  = _is_promotion(best_move)
-
+        is_cap = _is_capture(best_move)
+        is_prom = _is_promotion(best_move)
         board.push(best_move)
 
         if is_cap:
@@ -1234,17 +1137,23 @@ def play_ai_move():
             move_type = "➡️"
 
         st.session_state['move_history'].append(("🤖", move_str, move_type))
-        st.session_state['last_move']  = move_str
-        st.session_state['hint_move']  = ""
-        st.session_state['analysis']   = None
+        st.session_state['last_move'] = move_str
+        st.session_state['hint_move'] = ""
+        st.session_state['analysis'] = None
         st.session_state['move_count'] = (
             st.session_state.get('move_count', 0) + 1
         )
 
+        # إصلاح #4: عدّاد الأكل حسب لون الـ AI الفعلي
         if is_cap:
-            st.session_state['captures_b'] = (
-                st.session_state.get('captures_b', 0) + 1
-            )
+            if st.session_state['ai_color'] == WHITE:
+                st.session_state['captures_w'] = (
+                    st.session_state.get('captures_w', 0) + 1
+                )
+            else:
+                st.session_state['captures_b'] = (
+                    st.session_state.get('captures_b', 0) + 1
+                )
 
         tt_stats = get_tt_stats()
         st.session_state['ai_info'] = (
@@ -1256,26 +1165,24 @@ def play_ai_move():
 
         # حساب القطع المهددة بعد حركة AI
         try:
-            current_fen     = get_board_fen(board)
-            wp_now, bp_now  = parse_fen_pieces(current_fen)
-            player_c        = st.session_state['player_color']
-            threatened      = get_threatened_squares(wp_now, bp_now, player_c)
+            current_fen = get_board_fen(board)
+            wp_now, bp_now = parse_fen_pieces(current_fen)
+            player_c = st.session_state['player_color']
+            threatened = get_threatened_squares(wp_now, bp_now, player_c)
             st.session_state['threatened_sqs'] = threatened
         except Exception:
             st.session_state['threatened_sqs'] = set()
 
         if is_game_over(board):
             st.session_state['game_over'] = True
-            st.session_state['winner']    = get_winner(
-                board,
-                st.session_state['player_color'],
-                ai_color
+            st.session_state['winner'] = get_winner(
+                board, st.session_state['player_color'], ai_color
             )
         else:
             st.session_state['pending_ai'] = False
     else:
-        st.session_state['game_over']  = True
-        st.session_state['winner']     = 'player'
+        st.session_state['game_over'] = True
+        st.session_state['winner'] = 'player'
         st.session_state['pending_ai'] = False
 
 
@@ -1283,15 +1190,16 @@ def undo_move():
     """
     التراجع عن آخر حركتين (اللاعب + AI).
     يُعيد بناء الرقعة من الصفر باستخدام السجل المتبقي.
+    إصلاح #6: معالجة حالة فشل إعادة البناء.
     """
     history = st.session_state.get('move_history', [])
     if not history:
         return
-
-    moves_to_remove   = min(2, len(history))
+    moves_to_remove = min(2, len(history))
     remaining_history = history[:-moves_to_remove]
 
     new_board = Board(variant="english")
+    rebuild_failed = False
     for _, mv_str, _ in remaining_history:
         legal_in_sim = get_legal_moves(new_board)
         matched_move = None
@@ -1301,19 +1209,32 @@ def undo_move():
                 break
         if matched_move is not None:
             new_board.push(matched_move)
+        else:
+            rebuild_failed = True
+            break
+
+    if rebuild_failed:
+        st.warning("⚠️ فشل التراجع، تم إعادة تعيين اللعبة")
+        init_game(
+            st.session_state['player_color'],
+            st.session_state['ai_color'],
+            st.session_state['depth'],
+            st.session_state.get('time_limit', 5.0)
+        )
+        return
 
     last_move_str = remaining_history[-1][1] if remaining_history else ""
 
-    st.session_state['board']          = new_board
-    st.session_state['move_history']   = remaining_history
-    st.session_state['game_over']      = False
-    st.session_state['winner']         = None
-    st.session_state['last_move']      = last_move_str
-    st.session_state['hint_move']      = ""
-    st.session_state['pending_ai']     = False
-    st.session_state['celebrated']     = False
-    st.session_state['analysis']       = None
-    st.session_state['show_analysis']  = False
+    st.session_state['board'] = new_board
+    st.session_state['move_history'] = remaining_history
+    st.session_state['game_over'] = False
+    st.session_state['winner'] = None
+    st.session_state['last_move'] = last_move_str
+    st.session_state['hint_move'] = ""
+    st.session_state['pending_ai'] = False
+    st.session_state['celebrated'] = False
+    st.session_state['analysis'] = None
+    st.session_state['show_analysis'] = False
     st.session_state['threatened_sqs'] = set()
 
 
@@ -1373,24 +1294,23 @@ def main():
 
         depth_map = {
             "مبتدئ": 2,
-            "سهل":   3,
+            "سهل": 3,
             "متوسط": 6,
-            "صعب":   10,
-            "خبير":  14,
+            "صعب": 10,
+            "خبير": 14,
             "عبقري": 24,
         }
         time_map = {
             "مبتدئ": 1.0,
-            "سهل":   2.0,
+            "سهل": 2.0,
             "متوسط": 5.0,
-            "صعب":   8.0,
-            "خبير":  12.0,
+            "صعب": 8.0,
+            "خبير": 12.0,
             "عبقري": 20.0,
         }
 
         chosen_depth = depth_map[difficulty]
-        chosen_time  = time_map[difficulty]
-
+        chosen_time = time_map[difficulty]
         st.markdown(
             f'<div style="font-family:Tajawal;font-size:0.8rem;'
             f'color:#666;direction:rtl;margin-top:-5px;margin-bottom:4px">'
@@ -1400,7 +1320,6 @@ def main():
         )
 
         st.markdown("---")
-
         btn_col1, btn_col2 = st.columns(2)
         with btn_col1:
             new_game_pressed = st.button(
@@ -1409,10 +1328,9 @@ def main():
                 key="btn_new_game"
             )
         with btn_col2:
-            history_len  = len(st.session_state.get('move_history', []))
+            history_len = len(st.session_state.get('move_history', []))
             undo_enabled = (
-                st.session_state.get("game_started", False) and
-                history_len > 0
+                st.session_state.get("game_started", False) and history_len > 0
             )
             undo_pressed = st.button(
                 "↩️ تراجع",
@@ -1424,10 +1342,10 @@ def main():
         if new_game_pressed:
             if "أبيض" in color_choice:
                 player_c = WHITE
-                ai_c     = BLACK
+                ai_c = BLACK
             else:
                 player_c = BLACK
-                ai_c     = WHITE
+                ai_c = WHITE
             init_game(player_c, ai_c, chosen_depth, chosen_time)
             st.rerun()
 
@@ -1442,12 +1360,10 @@ def main():
                 '<div class="section-header">📊 إحصائيات</div>',
                 unsafe_allow_html=True
             )
-
             board = st.session_state['board']
             wm, wk, bm, bk = count_pieces(board)
             wt = wm + wk
             bt = bm + bk
-
             st.markdown(
                 f'<div class="info-card">'
                 f'<div class="piece-count">'
@@ -1466,8 +1382,7 @@ def main():
                 f'</div>',
                 unsafe_allow_html=True
             )
-
-            tt_stats   = get_tt_stats()
+            tt_stats = get_tt_stats()
             move_count = st.session_state.get('move_count', 0)
             st.markdown(
                 f'<div style="direction:rtl;font-family:Tajawal;margin:5px 0">'
@@ -1477,7 +1392,6 @@ def main():
                 f'</div>',
                 unsafe_allow_html=True
             )
-
             ai_info = st.session_state.get('ai_info', '')
             if ai_info:
                 st.markdown(
@@ -1486,30 +1400,30 @@ def main():
                     unsafe_allow_html=True
                 )
 
-            # ─── سجل الحركات ───
-            move_history = st.session_state.get('move_history', [])
-            if move_history:
-                st.markdown("---")
-                st.markdown(
-                    '<div class="section-header">📜 سجل الحركات</div>',
-                    unsafe_allow_html=True
-                )
-                with st.container(height=230):
-                    for move_idx, move_item in enumerate(move_history, 1):
-                        who_icon  = move_item[0]
-                        mv_str    = move_item[1]
-                        mv_type   = move_item[2] if len(move_item) > 2 else "➡️"
-                        is_latest = (move_idx == len(move_history))
-                        row_class = "history-row last-move" if is_latest else "history-row"
-                        st.markdown(
-                            f'<div class="{row_class}">'
-                            f'<span class="h-num">{move_idx}</span>'
-                            f'<span class="h-who">{who_icon}</span>'
-                            f'<span class="h-move">{mv_str}</span>'
-                            f'<span class="h-type">{mv_type}</span>'
-                            f'</div>',
-                            unsafe_allow_html=True
-                        )
+        # ─── سجل الحركات ───
+        move_history = st.session_state.get('move_history', [])
+        if move_history:
+            st.markdown("---")
+            st.markdown(
+                '<div class="section-header">📜 سجل الحركات</div>',
+                unsafe_allow_html=True
+            )
+            with st.container(height=230):
+                for move_idx, move_item in enumerate(move_history, 1):
+                    who_icon = move_item[0]
+                    mv_str = move_item[1]
+                    mv_type = move_item[2] if len(move_item) > 2 else "➡️"
+                    is_latest = (move_idx == len(move_history))
+                    row_class = "history-row last-move" if is_latest else "history-row"
+                    st.markdown(
+                        f'<div class="{row_class}">'
+                        f'<span class="h-num">{move_idx}</span>'
+                        f'<span class="h-who">{who_icon}</span>'
+                        f'<span class="h-move">{mv_str}</span>'
+                        f'<span class="h-type">{mv_type}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
 
     # ════════════════════════════════════════
     # المنطقة الرئيسية
@@ -1530,14 +1444,12 @@ def main():
     if not st.session_state.get("game_started"):
         st.markdown("---")
         render_index()
-
         st.markdown(
             '<div style="font-family:Tajawal;font-size:1.05rem;'
             'font-weight:700;color:#FFD700;text-align:center;'
             'margin:14px 0 8px;direction:rtl">✨ مميزات البرنامج</div>',
             unsafe_allow_html=True
         )
-
         welcome_col1, welcome_col2 = st.columns(2)
         with welcome_col1:
             st.markdown("""
@@ -1545,71 +1457,50 @@ def main():
                 <span class="wf-icon">🧠</span>
                 <div>
                     <div class="wf-title">ذكاء اصطناعي عبقري</div>
-                    <div class="wf-desc">
-                        Minimax بعمق 24 مع Aspiration Windows
-                        وكتاب افتتاحيات كلاسيكية
-                    </div>
+                    <div class="wf-desc"> Minimax بعمق 24 مع Aspiration Windows وكتاب افتتاحيات كلاسيكية </div>
                 </div>
             </div>
             <div class="welcome-feature">
                 <span class="wf-icon">🛡️</span>
                 <div>
                     <div class="wf-title">تحليل السلامة الكامل</div>
-                    <div class="wf-desc">
-                        يكشف القطع المهددة لحظياً ويتجنب
-                        إعطاء الخصم فرص الأكل
-                    </div>
+                    <div class="wf-desc"> يكشف القطع المهددة لحظياً ويتجنب إعطاء الخصم فرص الأكل </div>
                 </div>
             </div>
             <div class="welcome-feature">
                 <span class="wf-icon">🍴</span>
                 <div>
                     <div class="wf-title">كشف الشوكات والفخاخ</div>
-                    <div class="wf-desc">
-                        يبني مواقف تهدد عدة قطع في آنٍ واحد
-                        ويخدع الخصم بتكتيكات متقدمة
-                    </div>
+                    <div class="wf-desc"> يبني مواقف تهدد عدة قطع في آنٍ واحد ويخدع الخصم بتكتيكات متقدمة </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
-
         with welcome_col2:
             st.markdown("""
             <div class="welcome-feature">
                 <span class="wf-icon">⚡</span>
                 <div>
                     <div class="wf-title">سرعة قصوى</div>
-                    <div class="wf-desc">
-                        TT بحجم مليون موضع + Zobrist Hashing
-                        + LMR + Counter Moves
-                    </div>
+                    <div class="wf-desc"> TT بحجم مليون موضع + Zobrist Hashing + LMR + Counter Moves </div>
                 </div>
             </div>
             <div class="welcome-feature">
                 <span class="wf-icon">💡</span>
                 <div>
                     <div class="wf-title">مساعد استراتيجي عبقري</div>
-                    <div class="wf-desc">
-                        أفضل 5 حركات مع تقييم تفصيلي
-                        ونصائح بالعربية حسب المرحلة
-                    </div>
+                    <div class="wf-desc"> أفضل 5 حركات مع تقييم تفصيلي ونصائح بالعربية حسب المرحلة </div>
                 </div>
             </div>
             <div class="welcome-feature">
                 <span class="wf-icon">🔬</span>
                 <div>
                     <div class="wf-title">Quiescence Search</div>
-                    <div class="wf-desc">
-                        يتابع الأكل بعمق 10 مستويات
-                        لتجنب أفق البحث تماماً
-                    </div>
+                    <div class="wf-desc"> يتابع الأكل بعمق 10 مستويات لتجنب أفق البحث تماماً </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
-
         st.markdown("---")
         st.info("👈 اضغط **'🆕 لعبة جديدة'** لبدء اللعب", icon="🎮")
-
         demo_board = Board(variant="english")
         st.markdown(
             f'<div class="board-wrap">'
@@ -1620,16 +1511,15 @@ def main():
         st.stop()
 
     # ─── تنفيذ حركة AI ───
-    if (st.session_state.get('pending_ai') and
-            not st.session_state.get('game_over')):
+    if (st.session_state.get('pending_ai') and not st.session_state.get('game_over')):
         with st.spinner("🤖 المحرك يحسب أفضل حركة..."):
             play_ai_move()
         st.rerun()
 
-    board        = st.session_state['board']
+    board = st.session_state['board']
     player_color = st.session_state['player_color']
-    ai_color     = st.session_state['ai_color']
-    threatened   = st.session_state.get('threatened_sqs', set())
+    ai_color = st.session_state['ai_color']
+    threatened = st.session_state.get('threatened_sqs', set())
 
     # ─── تخطيط ثنائي: رقعة | تحليل ───
     col_board, col_analysis = st.columns([1.05, 0.95])
@@ -1669,8 +1559,7 @@ def main():
             if board.turn == player_color:
                 available_moves = len(get_legal_moves(board))
                 threatened_warning = (
-                    f" | ⚠️ {len(threatened)} قطعة مهددة!"
-                    if threatened else ""
+                    f" | ⚠️ {len(threatened)} قطعة مهددة!" if threatened else ""
                 )
                 st.markdown(
                     f'<div class="status-box status-player">'
@@ -1700,28 +1589,24 @@ def main():
         )
 
         # ─── أدوات اللاعب (فقط في دوره) ───
-        if (not st.session_state.get('game_over') and
-                board.turn == player_color):
+        if (not st.session_state.get('game_over') and board.turn == player_color):
             legal_moves = get_legal_moves(board)
             if legal_moves:
                 move_labels = []
                 for mv in legal_moves:
                     label = fmt(mv)
                     if _is_capture(mv):
-                        label += f"  ⚔️×{_capture_count(mv)}"
+                        label += f" ⚔️×{_capture_count(mv)}"
                     elif _is_promotion(mv):
-                        label += "  👑"
+                        label += " 👑"
                     move_labels.append(label)
-
                 st.selectbox(
                     "🎯 اختر حركتك:",
                     range(len(move_labels)),
                     format_func=lambda i: f"[{i + 1}] {move_labels[i]}",
                     key="move_select"
                 )
-
                 action_c1, action_c2, action_c3 = st.columns(3)
-
                 with action_c1:
                     if st.button(
                         "▶️ العب!",
@@ -1731,7 +1616,6 @@ def main():
                     ):
                         play_human_move()
                         st.rerun()
-
                 with action_c2:
                     history_len_now = len(
                         st.session_state.get('move_history', [])
@@ -1744,7 +1628,6 @@ def main():
                     ):
                         undo_move()
                         st.rerun()
-
                 with action_c3:
                     if st.button(
                         "🔄 تحديث",
@@ -1752,7 +1635,6 @@ def main():
                         key="btn_refresh"
                     ):
                         st.rerun()
-
                 # عرض التلميح النصي
                 current_hint = st.session_state.get('hint_move', '')
                 if current_hint:
@@ -1773,22 +1655,18 @@ def main():
             '<div class="section-header">🧠 لوحة التحليل الذكي</div>',
             unsafe_allow_html=True
         )
-
         if not st.session_state.get('game_over'):
-
             # شريط التقييم اللحظي
             try:
-                raw_score  = evaluate_position(board, player_color)
-                pct        = eval_to_pct(raw_score)
+                raw_score = evaluate_position(board, player_color)
+                pct = eval_to_pct(raw_score)
                 marker_pos = max(2, min(98, int(pct)))
-
                 if raw_score > 100:
                     score_color = "#00E676"
                 elif raw_score < -100:
                     score_color = "#EF5350"
                 else:
                     score_color = "#FFFFFF"
-
                 st.markdown(
                     f'<div class="eval-container">'
                     f'<div style="display:flex;justify-content:space-between;'
@@ -1812,11 +1690,11 @@ def main():
 
             # معلومات المرحلة
             try:
-                fen_phase      = get_board_fen(board)
-                wp_ph, bp_ph   = parse_fen_pieces(fen_phase)
-                total_ph       = len(wp_ph) + len(bp_ph)
-                phase_val      = _game_phase(total_ph)
-                phase_label    = _phase_label(phase_val)
+                fen_phase = get_board_fen(board)
+                wp_ph, bp_ph = parse_fen_pieces(fen_phase)
+                total_ph = len(wp_ph) + len(bp_ph)
+                phase_val = _game_phase(total_ph)
+                phase_label = _phase_label(phase_val)
                 st.markdown(
                     f'<div style="font-family:Tajawal;font-size:0.82rem;'
                     f'color:#888;direction:rtl;margin:3px 0 8px">'
@@ -1831,9 +1709,7 @@ def main():
             hint_depth = min(
                 st.session_state.get('depth', 10), MAX_DEPTH
             )
-
             analysis_btn_col, quick_btn_col = st.columns(2)
-
             with analysis_btn_col:
                 deep_analysis_pressed = st.button(
                     f"🧠 تحليل عبقري",
@@ -1841,7 +1717,6 @@ def main():
                     help=f"تحليل عميق بعمق {hint_depth} مستوى",
                     key="btn_deep_analysis"
                 )
-
             with quick_btn_col:
                 quick_hint_pressed = st.button(
                     "⚡ تلميح سريع",
@@ -1852,102 +1727,87 @@ def main():
 
             if deep_analysis_pressed:
                 analysis_time_limit = min(
-                    st.session_state.get('time_limit', 5.0) * 2,
-                    18.0
+                    st.session_state.get('time_limit', 5.0) * 2, 18.0
                 )
                 with st.spinner(
                     f"🔬 جاري التحليل العميق بعمق {hint_depth}... "
                     f"(قد يستغرق حتى {analysis_time_limit:.0f}ث)"
                 ):
                     t_analysis_start = time.time()
-                    deep_analysis    = analyze_position(
-                        board,
-                        player_color,
-                        ai_color,
-                        depth=hint_depth,
-                        time_limit=analysis_time_limit
+                    deep_analysis = analyze_position(
+                        board, player_color, ai_color,
+                        depth=hint_depth, time_limit=analysis_time_limit
                     )
                     t_elapsed = time.time() - t_analysis_start
                     deep_analysis['analysis_time'] = f"{t_elapsed:.1f}ث"
-
                     best_mv_str = deep_analysis.get("best_move_str", "")
                     if best_mv_str:
                         st.session_state['hint_move'] = best_mv_str
-
-                    st.session_state['analysis']      = deep_analysis
+                    st.session_state['analysis'] = deep_analysis
                     st.session_state['show_analysis'] = True
-                st.rerun()
+                    st.rerun()
 
             if quick_hint_pressed:
                 with st.spinner("⚡ جاري حساب التلميح السريع..."):
                     quick_move, _, _ = find_best_move(
-                        board,
-                        player_color,
-                        max_depth=5,
-                        time_limit=2.0
+                        board, player_color, max_depth=5, time_limit=2.0
                     )
                     if quick_move is not None:
                         quick_str = fmt(quick_move)
                         st.session_state['hint_move'] = quick_str
-
-                        quick_cap   = _is_capture(quick_move)
-                        quick_prom  = _is_promotion(quick_move)
-                        quick_capn  = _capture_count(quick_move)
-
+                        quick_cap = _is_capture(quick_move)
+                        quick_prom = _is_promotion(quick_move)
+                        quick_capn = _capture_count(quick_move)
                         st.session_state['analysis'] = {
-                            "best_move":       quick_move,
-                            "best_move_str":   quick_str,
-                            "score":           0,
-                            "reached_depth":   5,
+                            "best_move": quick_move,
+                            "best_move_str": quick_str,
+                            "score": 0,
+                            "reached_depth": 5,
                             "top_moves": [
                                 {
-                                    "move":         quick_str,
-                                    "score":        0,
-                                    "label":        "تلميح سريع ⚡",
-                                    "is_capture":   quick_cap,
+                                    "move": quick_str,
+                                    "score": 0,
+                                    "label": "تلميح سريع ⚡",
+                                    "is_capture": quick_cap,
                                     "is_promotion": quick_prom,
-                                    "cap_count":    quick_capn,
+                                    "cap_count": quick_capn,
                                 }
                             ],
-                            "threats":         ["⚡ تحليل سريع بعمق 5"],
-                            "phase":           "—",
-                            "advantage":       "—",
-                            "recommendation":  f"💡 **التلميح السريع: {quick_str}**",
+                            "threats": ["⚡ تحليل سريع بعمق 5"],
+                            "phase": "—",
+                            "advantage": "—",
+                            "recommendation": f"💡 **التلميح السريع: {quick_str}**",
                             "threatened_mine": 0,
-                            "threatened_opp":  0,
-                            "analysis_time":   "< 2ث",
+                            "threatened_opp": 0,
+                            "analysis_time": "< 2ث",
                         }
                         st.session_state['show_analysis'] = True
-                st.rerun()
+                        st.rerun()
 
             # عرض نتيجة التحليل
-            if (st.session_state.get('show_analysis') and
-                    st.session_state.get('analysis') is not None):
-
+            if (st.session_state.get('show_analysis') and st.session_state.get('analysis') is not None):
                 st.markdown(
                     '<div class="analysis-card">',
                     unsafe_allow_html=True
                 )
                 render_analysis_panel(st.session_state['analysis'])
                 st.markdown('</div>', unsafe_allow_html=True)
-
                 if st.button(
                     "✖ إغلاق التحليل",
                     use_container_width=True,
                     key="btn_close_analysis"
                 ):
                     st.session_state['show_analysis'] = False
-                    st.session_state['hint_move']     = ""
+                    st.session_state['hint_move'] = ""
                     st.rerun()
 
             # نصائح عامة حسب المرحلة
             elif not st.session_state.get('show_analysis'):
                 try:
-                    fen_tip       = get_board_fen(board)
+                    fen_tip = get_board_fen(board)
                     wp_tip, bp_tip = parse_fen_pieces(fen_tip)
-                    total_tip     = len(wp_tip) + len(bp_tip)
-                    phase_tip     = _game_phase(total_tip)
-
+                    total_tip = len(wp_tip) + len(bp_tip)
+                    phase_tip = _game_phase(total_tip)
                     if phase_tip >= 0.75:
                         tip_text = (
                             "📚 **نصيحة الافتتاح:** سيطر على مربعات المركز "
@@ -1963,7 +1823,6 @@ def main():
                             "🎯 **نصيحة نهاية اللعبة:** الملوك أقوى بكثير، "
                             "اسعَ لتتويج قطعة وسيطر على الزوايا المزدوجة."
                         )
-
                     st.markdown(
                         f'<div class="hint-box">{tip_text}</div>',
                         unsafe_allow_html=True
@@ -1975,22 +1834,34 @@ def main():
             # ─── إحصائيات نهاية اللعبة ───
             winner_final = st.session_state.get('winner')
             if winner_final == 'player':
-                result_icon  = "🏆"
-                result_text  = "أحسنت! انتصرت على المحرك!"
+                result_icon = "🏆"
+                result_text = "أحسنت! انتصرت على المحرك!"
                 result_color = "#FFD700"
             elif winner_final == 'ai':
-                result_icon  = "💻"
-                result_text  = "المحرك فاز هذه المرة!"
+                result_icon = "💻"
+                result_text = "المحرك فاز هذه المرة!"
                 result_color = "#EF5350"
             else:
-                result_icon  = "🤝"
-                result_text  = "انتهت اللعبة بالتعادل!"
+                result_icon = "🤝"
+                result_text = "انتهت اللعبة بالتعادل!"
                 result_color = "#64B5F6"
 
             total_moves_final = len(st.session_state.get('move_history', []))
-            captures_w_final  = st.session_state.get('captures_w', 0)
-            captures_b_final  = st.session_state.get('captures_b', 0)
-            tt_final          = get_tt_stats()
+            captures_w_final = st.session_state.get('captures_w', 0)
+            captures_b_final = st.session_state.get('captures_b', 0)
+            tt_final = get_tt_stats()
+
+            # إصلاح #5: أيقونات الألوان حسب اللون الفعلي للاعب
+            player_icon = "⬜" if st.session_state.get('player_color') == WHITE else "⬛"
+            ai_icon = "⬛" if st.session_state.get('player_color') == WHITE else "⬜"
+
+            # تحديد عدد أكلات كل طرف حسب لونه الفعلي
+            if st.session_state.get('player_color') == WHITE:
+                player_captures = captures_w_final
+                ai_captures = captures_b_final
+            else:
+                player_captures = captures_b_final
+                ai_captures = captures_w_final
 
             st.markdown(
                 f'<div class="game-over-stats">'
@@ -2006,8 +1877,8 @@ def main():
                 f'<div class="analysis-section">'
                 f'<div class="analysis-label">عمليات الأكل</div>'
                 f'<div class="analysis-value">'
-                f'⬜ اللاعب: {captures_w_final} &nbsp;|&nbsp; '
-                f'⬛ AI: {captures_b_final}'
+                f'{player_icon} اللاعب: {player_captures} &nbsp;|&nbsp; '
+                f'{ai_icon} AI: {ai_captures}'
                 f'</div>'
                 f'</div>'
                 f'<div class="analysis-section">'
