@@ -1,7 +1,6 @@
 """
 لعبة الداما الكلاسيكية (8x8 - 12 قطعة) بواجهة رسومية - Streamlit
 """
-import re
 import streamlit as st
 
 try:
@@ -24,14 +23,15 @@ st.set_page_config(
 )
 
 def format_move(move):
-    s = str(move)
-    nums = re.findall(r'\d+', s)
-    if len(nums) >= 2:
-        if len(nums) == 2:
-            return f"{nums[0]} → {nums[1]}"
-        else:
-            return " × ".join(nums)
-    return s
+    """تهيئة الحركة لتظهر بشكل رياضي احترافي"""
+    try:
+        if hasattr(move, 'pdn_move') and move.pdn_move:
+            return str(move.pdn_move)
+        if hasattr(move, 'steps_move') and move.steps_move:
+            return " → ".join(map(str, move.steps_move))
+    except Exception:
+        pass
+    return "حركة"
 
 def get_board_fen(board):
     fen = board.fen
@@ -71,6 +71,7 @@ def get_winner(board, player_color, ai_color):
     if board.turn == ai_color: return 'player'
     else: return 'ai'
 
+import re
 def render_board_svg(board, last_move_str=""):
     CELL = 60 
     BOARD_SIZE = CELL * 8
